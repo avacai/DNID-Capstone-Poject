@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const admin = require('firebase-admin');
 
-// 初始化 Firebase Admin
+// Initialize Firebase Admin
 const serviceAccount = require('./serviceAccountKey.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -14,7 +14,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// 示例 API：用户注册
+// Example API：Register
 app.post('/auth/register', async (req, res) => {
   try {
     const { email, username } = req.body;
@@ -32,7 +32,7 @@ app.post('/auth/register', async (req, res) => {
   }
 });
 
-// 示例 API：记录一次专注 Session
+// Example API：record a session
 app.post('/session', async (req, res) => {
   try {
     const { userId, duration } = req.body;
@@ -40,7 +40,7 @@ app.post('/session', async (req, res) => {
     await sessionRef.set({
       duration,
       createdAt: new Date(),
-      reward: Math.floor(duration / 10) // 示例：10分钟=1金币
+      reward: Math.floor(duration / 10) // example: 10 coins per min
     });
     res.status(201).send({ id: sessionRef.id });
   } catch (err) {
