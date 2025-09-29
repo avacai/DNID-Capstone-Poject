@@ -25,7 +25,6 @@ Download the JSON key file and place it in the root directory as:
 focupet-backend/serviceAccountKey.json
 
 
-⚠️ Add this file to .gitignore so it is not committed to GitHub.
 
 4. Run the Server
 npm start
