@@ -1,0 +1,15 @@
+FocuPet Backend
+
+This is the backend service for FocuPet, built with Node.js, Express, and Firebase Firestore.
+It provides RESTful APIs for authentication, focus session tracking, pet progression, and narrative unlocks.
+
+🚀 Getting Started
+1. Clone the Repository
+git clone https://github.com/your-org/focupet-backend.git
+cd focupet-backend
+
+2. Install Dependencies
+npm install
+
+
+
