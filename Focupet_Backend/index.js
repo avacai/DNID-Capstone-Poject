@@ -1,51 +1,30 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const admin = require('firebase-admin');
-
-// Initialize Firebase Admin
-const serviceAccount = require('./serviceAccountKey.json');
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-const db = admin.firestore();
+import express from "express";
+import fs from "fs";
+import bodyParser from "body-parser";
+import cors from "cors";
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Example API：Register
-app.post('/auth/register', async (req, res) => {
-  try {
-    const { email, username } = req.body;
-    const userRef = db.collection('users').doc();
-    await userRef.set({
-      email,
-      username,
-      createdAt: new Date(),
-      pet: { type: null, level: 1, xp: 0 },
-      sessions: []
-    });
-    res.status(201).send({ id: userRef.id });
-  } catch (err) {
-    res.status(500).send({ error: err.message });
-  }
-});
+const PORT = 3000;
 
-// Example API：record a session
-app.post('/session', async (req, res) => {
-  try {
-    const { userId, duration } = req.body;
-    const sessionRef = db.collection('users').doc(userId).collection('sessions').doc();
-    await sessionRef.set({
-      duration,
-      createdAt: new Date(),
-      reward: Math.floor(duration / 10) // example: 10 coins per min
-    });
-    res.status(201).send({ id: sessionRef.id });
-  } catch (err) {
-    res.status(500).send({ error: err.message });
-  }
-});
+let users = JSON.parse(fs.readFileSync("./users.json", "utf8"));
+let gameData = JSON.parse(fs.readFileSync("./gameData.json", "utf8"));
 
-app.listen(3000, () => console.log('FocuPet backend running on port 3000'));
+// ---------------- AUTH ----------------
+
+app.post("/auth/login", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
+
+  const user = users.find(u => u.email === email && u.password === password);
+  if (!user) {
+    return res.status(401).json({ error: "Invalid email or password" });
+  }
+
+  res.json({ message: "Login successful", userId: user.id, name: user.name });
+});
