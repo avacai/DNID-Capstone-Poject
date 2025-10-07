@@ -12,7 +12,7 @@ const PORT = 3000;
 let users = JSON.parse(fs.readFileSync("./users.json", "utf8"));
 let gameData = JSON.parse(fs.readFileSync("./gameData.json", "utf8"));
 
-// ---------------- AUTH ----------------
+// ------------ AUTH LOGIN --------------
 
 app.post("/auth/login", (req, res) => {
   const { email, password } = req.body;
@@ -27,4 +27,36 @@ app.post("/auth/login", (req, res) => {
   }
 
   res.json({ message: "Login successful", userId: user.id, name: user.name });
+});
+
+//------------- GET GAME DATA -------------
+//get game data from gameData.json
+app.get("/game/:userId", (req, res) => {
+  const userId = parseInt(req.params.userId);
+  const data = gameData.find(g => g.userId === userId);
+  if (!data) return res.status(404).json({ error: "Game data not found" });
+  res.json(data);
+});
+
+// create a new session
+app.post("/game/:userId/session", (req, res) => {
+  const { start, end, reward } = req.body;
+  const data = gameData.find(g => g.userId === parseInt(req.params.userId));
+  if (!data) return res.status(404).json({ error: "Game data not found" });
+  const newSession = { id: Date.now(), start, end, reward };
+  data.sessions.push(newSession);
+  data.currency += reward;
+  res.json({ message: "Session added", data });
+});
+
+// update pet
+app.post("/game/:userId/pet", (req, res) => {
+  const { level, mood } = req.body;
+  const data = gameData.find(g => g.userId === parseInt(req.params.userId));
+  if (!data) return res.status(404).json({ error: "Game data not found" });
+
+  if (level !== undefined) data.pet.level = level;
+  if (mood !== undefined) data.pet.mood = mood;
+
+  res.json({ message: "Pet updated", pet: data.pet });
 });
