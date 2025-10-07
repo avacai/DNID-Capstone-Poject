@@ -60,3 +60,7 @@ app.post("/game/:userId/pet", (req, res) => {
 
   res.json({ message: "Pet updated", pet: data.pet });
 });
+
+app.listen(PORT, () => {
+  console.log(`FocuPet backend running on port ${PORT}`);
+});
