@@ -6,8 +6,36 @@
       "level": 1,
       "mood": "happy"
     },
-    "currency": 100,
-    "sessions": []
+    "currency": 150,
+    "sessions": [
+      {
+        "id": 1697636130000,
+        "start": "2025-10-18T08:15:30Z",
+        "end": "2025-10-18T08:45:00Z",
+        "reward": 20
+      },
+      {
+        "id": 1697722530000,
+        "start": "2025-10-19T09:00:00Z",
+        "end": "2025-10-19T09:30:10Z",
+        "reward": 30
+      }
+    ],
+    "store": {
+      "availableItems": [
+        { "id": "item_health_potion", "name": "Health Potion", "price": 10 },
+        { "id": "item_speed_boost", "name": "Speed Boost", "price": 25 }
+      ],
+      "purchased": [
+        { "id": "item_health_potion", "boughtAt": "2025-10-01T12:00:00Z" }
+      ]
+    },
+    "stories": [
+      { "id": "story_1", "title": "Welcome to FocuPet", "progress": 100 }
+    ],
+    "tasks": [
+      { "id": "task_1", "title": "Feed your pet", "completed": true, "due": "2025-10-20T00:00:00Z" }
+    ]
   },
   {
     "userId": 2,
@@ -16,8 +44,29 @@
       "level": 1,
       "mood": "happy"
     },
-    "currency": 100,
-    "sessions": []
+    "currency": 130,
+    "sessions": [
+      {
+        "id": 1697549735000,
+        "start": "2025-10-17T07:15:35Z",
+        "end": "2025-10-17T07:45:40Z",
+        "reward": 15
+      },
+      {
+        "id": 1697636135000,
+        "start": "2025-10-18T08:15:35Z",
+        "end": "2025-10-18T08:50:00Z",
+        "reward": 15
+      }
+    ],
+    "store": {
+      "availableItems": [
+        { "id": "item_ball", "name": "Rubber Ball", "price": 5 }
+      ],
+      "purchased": []
+    },
+    "stories": [],
+    "tasks": []
   },
   {
     "userId": 3,
@@ -26,8 +75,21 @@
       "level": 1,
       "mood": "happy"
     },
-    "currency": 100,
-    "sessions": []
+    "currency": 110,
+    "sessions": [
+      {
+        "id": 1697463330000,
+        "start": "2025-10-16T06:15:30Z",
+        "end": "2025-10-16T06:20:45Z",
+        "reward": 5
+      }
+    ],
+    "store": {
+      "availableItems": [],
+      "purchased": []
+    },
+    "stories": [],
+    "tasks": []
   },
   {
     "userId": 4,
@@ -37,6 +99,9 @@
       "mood": "happy"
     },
     "currency": 100,
-    "sessions": []
+    "sessions": [],
+    "store": {},
+    "stories": [],
+    "tasks": []
   }
 ]
