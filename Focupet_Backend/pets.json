@@ -1,0 +1,23 @@
+[
+  {
+    "type": "Cat",
+    "description": "Quiet, reserved, stays up late",
+    "baseMood": "happy",
+    "levels": [
+      { "level": 1, "expRequired": 0, "image": "cat_level1.png" },
+      { "level": 2, "expRequired": 100, "image": "cat_level2.png" },
+      { "level": 3, "expRequired": 300, "image": "cat_level3.png" }
+    ],
+    "accessories": ["milk_bowl", "bows", "collar", "toy_mouse"]
+  },
+  {
+    "type": "Dog",
+    "description": "Loyal and energetic",
+    "baseMood": "happy",
+    "levels": [
+      { "level": 1, "expRequired": 0, "image": "dog_level1.png" },
+      { "level": 2, "expRequired": 100, "image": "dog_level2.png" }
+    ],
+    "accessories": ["bone", "ball", "collar"]
+  }
+]

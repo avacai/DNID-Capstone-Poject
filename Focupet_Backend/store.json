@@ -1,0 +1,8 @@
+{
+  "availableItems": [
+    { "id": "item_health_potion", "name": "Health Potion", "type": "food", "price": 10 },
+    { "id": "item_speed_boost", "name": "Speed Boost", "type": "boost", "price": 25 },
+    { "id": "item_bow", "name": "Bow", "type": "accessory", "price": 8 },
+    { "id": "item_mini_treat", "name": "Mini Treat", "type": "food", "price": 5 }
+  ]
+}
