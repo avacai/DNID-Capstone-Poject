@@ -1,8 +1,8 @@
 import { View, Text } from "react-native";
-export default function Home() {
+export default function Store() {
   return (
     <View style={{ flex:1, alignItems:"center", justifyContent:"center" }}>
-      <Text>Home 🐾</Text>
+      <Text>Store 💰</Text>
     </View>
   );
 }
