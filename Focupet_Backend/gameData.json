@@ -3,7 +3,8 @@
     "userId": 1,
     "pet": {
       "type": "Cat",
-      "level": 1,
+      "exp": 0,
+      "growthStage": "baby",
       "mood": "happy"
     },
     "currency": 150,
@@ -27,18 +28,10 @@
         "reward": 30
       }
     ],
-    "store": {
-      "availableItems": [
-        { "id": "item_health_potion", "name": "Health Potion", "price": 10 },
-        { "id": "item_speed_boost", "name": "Speed Boost", "price": 25 }
-      ],
-      "purchased": [
-        { "id": "item_health_potion", "boughtAt": "2025-10-01T12:00:00Z" }
-      ]
-    },
     "stories": [
       { "id": "story_1", "title": "Welcome to FocuPet", "progress": 100 }
     ],
+    "storyProgress": 0,
     "tasks": [
       {
         "id": "task_1",
@@ -46,13 +39,26 @@
         "completed": true,
         "due": "2025-10-20T00:00:00Z"
       }
-    ]
+    ],
+    "inventory": [],
+    "equipped": {
+      "head": null,
+      "body": null,
+      "face": null,
+      "neck": null,
+      "shoes": null,
+      "bowl": null,
+      "toy": null,
+      "tail": null
+    }
   },
+
   {
     "userId": 2,
     "pet": {
       "type": "Dog",
-      "level": 1,
+      "exp": 0,
+      "growthStage": "baby",
       "mood": "happy"
     },
     "currency": 130,
@@ -76,20 +82,28 @@
         "reward": 15
       }
     ],
-    "store": {
-      "availableItems": [
-        { "id": "item_ball", "name": "Rubber Ball", "price": 5 }
-      ],
-      "purchased": []
-    },
     "stories": [],
-    "tasks": []
+    "storyProgress": 0,
+    "tasks": [],
+    "inventory": [],
+    "equipped": {
+      "head": null,
+      "body": null,
+      "face": null,
+      "neck": null,
+      "shoes": null,
+      "bowl": null,
+      "toy": null,
+      "tail": null
+    }
   },
+
   {
     "userId": 3,
     "pet": {
       "type": "Duck",
-      "level": 1,
+      "exp": 0,
+      "growthStage": "baby",
       "mood": "happy"
     },
     "currency": 110,
@@ -104,24 +118,19 @@
         "reward": 5
       }
     ],
-    "store": {
-      "availableItems": [],
-      "purchased": []
-    },
     "stories": [],
-    "tasks": []
-  },
-  {
-    "userId": 4,
-    "pet": {
-      "type": "Seal",
-      "level": 1,
-      "mood": "happy"
-    },
-    "currency": 100,
-    "sessions": [],
-    "store": {},
-    "stories": [],
-    "tasks": []
+    "storyProgress": 0,
+    "tasks": [],
+    "inventory": [],
+    "equipped": {
+      "head": null,
+      "body": null,
+      "face": null,
+      "neck": null,
+      "shoes": null,
+      "bowl": null,
+      "toy": null,
+      "tail": null
+    }
   }
 ]

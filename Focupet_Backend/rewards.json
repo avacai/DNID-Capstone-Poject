@@ -1,6 +1,7 @@
 {
   "currencyPer5Min": 5,
-  "petExpPerSession": 3,
+  
+  "petExpPer5Min": 1,
 
   "storyProgressPer25Min": 1,
 

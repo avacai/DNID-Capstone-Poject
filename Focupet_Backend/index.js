@@ -30,6 +30,8 @@ app.use(
 const usersPath = path.join(__dirname, "users.json");
 const gamedataPath = path.join(__dirname, "gamedata.json");
 const sessionPath = path.join(__dirname, "session.json");
+const storePath = path.join(__dirname, "store.json");
+const rewardsPath = path.join(__dirname, "rewards.json");
 
 // LOAD FILE HELPERS
 async function loadJSON(path, fallback = []) {
@@ -49,6 +51,16 @@ async function saveJSON(path, data) {
 let users = await loadJSON(usersPath, []);
 let gamedata = await loadJSON(gamedataPath, []);
 let sessions = await loadJSON(sessionPath, []);
+let storeData = await loadJSON(storePath, []);
+let rewardConfig = await loadJSON(rewardsPath, {
+  currencyPer5Min: 5,
+  petExpPer5Min: 0,
+});
+
+// SAVE GAMEDATA HELPER
+async function saveGameData() {
+  await saveJSON(gamedataPath, gamedata);
+}
 
 // SESSION TOKEN (LOGIN)
 const tokens = new Map();
@@ -73,6 +85,199 @@ function auth(req, res, next) {
   req.user = tokens.get(token); // { id, email }
   next();
 }
+
+// REWARD HELPERS
+function computeReward(durationSeconds) {
+  const blocks = Math.floor(durationSeconds / 300); // 每 5 分钟一个区块
+  if (blocks <= 0) {
+    return { currency: 0, petExp: 0 };
+  }
+
+  const currencyPer5 =
+    typeof rewardConfig.currencyPer5Min === "number"
+      ? rewardConfig.currencyPer5Min
+      : 5;
+  const petExpPer5 =
+    typeof rewardConfig.petExpPer5Min === "number"
+      ? rewardConfig.petExpPer5Min
+      : 0;
+
+  return {
+    currency: blocks * currencyPer5,
+    petExp: blocks * petExpPer5,
+  };
+}
+
+// apply reward to user
+async function applyRewardToUser(userId, durationSeconds, sessionRecord) {
+  const reward = computeReward(durationSeconds);
+  const userGame = gamedata.find((g) => g.userId === userId);
+
+  // what this function will return to API
+  let evolved = false;
+  let oldStage = null;
+  let newStage = null;
+
+  let moodChanged = false;
+  let oldMood = null;
+  let newMood = null;
+
+  if (userGame) {
+    //
+    // Base currency logic
+    //
+    if (typeof userGame.currency !== "number") {
+      userGame.currency = 0;
+    }
+    userGame.currency += reward.currency;
+
+    //
+    // Ensure pet object exists
+    //
+    if (!userGame.pet) {
+      userGame.pet = {
+        type: "Cat",
+        exp: 0,
+        growthStage: "baby",
+        mood: "neutral",
+        lastActiveAt: new Date().toISOString()
+      };
+    }
+
+    //
+    // Base EXP gain
+    //
+    if (typeof userGame.pet.exp !== "number") {
+      userGame.pet.exp = 0;
+    }
+    userGame.pet.exp += reward.petExp;
+
+    //
+    // -----------------------------
+    // A) PET GROWTH SYSTEM
+    // -----------------------------
+    //
+    const thresholds = rewardConfig.expThresholds || {};
+
+    oldStage = userGame.pet.growthStage || "baby";
+
+    // baby → teen
+    if (
+      userGame.pet.growthStage === "baby" &&
+      userGame.pet.exp >= thresholds.baby_to_teen
+    ) {
+      userGame.pet.growthStage = "teen";
+      evolved = true;
+      newStage = "teen";
+    }
+
+    // teen → adult
+    if (
+      userGame.pet.growthStage === "teen" &&
+      userGame.pet.exp >= thresholds.teen_to_adult
+    ) {
+      userGame.pet.growthStage = "adult";
+      evolved = true;
+      newStage = "adult";
+    }
+
+    //
+    // -----------------------------
+    // B) PET MOOD SYSTEM
+    // -----------------------------
+    //
+    const moodRules = rewardConfig.moodRules || {};
+    const minutes = durationSeconds / 60;
+
+    oldMood = userGame.pet.mood || "neutral";
+    newMood = oldMood;
+
+    // Session-based mood improvement
+    if (minutes >= 5 && minutes < 15) {
+      newMood = moodRules.shortSession || "okay";
+    } else if (minutes >= 15 && minutes < 30) {
+      newMood = moodRules.mediumSession || "happy";
+    } else if (minutes >= 30) {
+      newMood = moodRules.longSession || "happy";
+    }
+
+    // Mood decay: no activity for 24 hours
+    const lastActive = userGame.pet.lastActiveAt
+      ? new Date(userGame.pet.lastActiveAt)
+      : null;
+    const now = new Date();
+
+    if (lastActive) {
+      const hoursInactive =
+        (now.getTime() - lastActive.getTime()) / (1000 * 60 * 60);
+
+      if (hoursInactive >= 24) {
+        newMood = "sad";
+      }
+    }
+
+    if (newMood !== oldMood) {
+      moodChanged = true;
+    }
+
+    userGame.pet.mood = newMood;
+
+    // Update last active time
+    userGame.pet.lastActiveAt = new Date().toISOString();
+
+    //
+    // -----------------------------
+    // C) STORY PROGRESS ACCUMULATION
+    // -----------------------------
+    //
+    const storyAmount = rewardConfig.storyProgressPer25Min || 0;
+    const blocks25 = Math.floor(durationSeconds / (25 * 60));
+
+    if (typeof userGame.storyProgress !== "number") {
+      userGame.storyProgress = 0;
+    }
+
+    if (blocks25 > 0) {
+      userGame.storyProgress += blocks25 * storyAmount;
+    }
+
+    //
+    // Save session history
+    //
+    if (!Array.isArray(userGame.sessions)) {
+      userGame.sessions = [];
+    }
+
+    if (sessionRecord) {
+      userGame.sessions.push({
+        ...sessionRecord,
+        reward: reward.currency
+      });
+    }
+
+    //
+    // Persist all changes
+    //
+    await saveGameData();
+  }
+
+  //
+  // return expanded reward summary
+  //
+  return {
+    reward,
+    userGame,
+    evolved,
+    oldStage,
+    newStage,
+    moodChanged,
+    oldMood,
+    newMood,
+    storyProgress: userGame.storyProgress
+  };
+}
+
+
 
 // ROUTES
 app.get("/api/health", (_req, res) => {
@@ -124,12 +329,10 @@ app.get("/api/gamedata", auth, (req, res) => {
   res.json({ ok: true, gamedata: userGame });
 });
 
-//
-// --------------------------
-// SESSION SYSTEM START HERE
-// --------------------------
-//
 
+// --------------------------
+// SESSION SYSTEM
+// --------------------------
 // START SESSION
 app.post("/api/session/start", auth, async (req, res) => {
   const { task = null, taskId = null } = req.body;
@@ -155,6 +358,7 @@ app.post("/api/session/start", auth, async (req, res) => {
   res.json({ ok: true, session: newSession });
 });
 
+
 // END SESSION
 app.post("/api/session/end", auth, async (req, res) => {
   const { sessionId } = req.body;
@@ -168,6 +372,7 @@ app.post("/api/session/end", auth, async (req, res) => {
     return res.status(404).json({ ok: false, message: "Session not found" });
   }
 
+  // session already finished
   if (session.endTime) {
     return res.json({ ok: true, session, message: "Session already ended" });
   }
@@ -180,44 +385,75 @@ app.post("/api/session/end", auth, async (req, res) => {
     Math.floor((end.getTime() - start.getTime()) / 1000)
   );
 
-  const reward = Math.floor(duration / 300) * 5; // 5 minutes = 5 coins
-
   session.endTime = end.toISOString();
   session.duration = duration;
-  session.reward = reward;
 
   await saveJSON(sessionPath, sessions);
 
-  // SYNC TO GAMEDATA
-  const userGame = gamedata.find((g) => g.userId === userId);
-  if (userGame) {
-    userGame.currency += reward;
-
-    if (!Array.isArray(userGame.sessions)) {
-      userGame.sessions = [];
-    }
-
-    userGame.sessions.push({
+  // Call reward system (ONLY ONCE)
+  const result = await applyRewardToUser(
+    userId,
+    duration,
+    {
       id: session.id,
       task: session.task,
       taskId: session.taskId,
       startTime: session.startTime,
       endTime: session.endTime,
-      duration: session.duration,
-      reward: session.reward,
-    });
+      duration: session.duration
+    }
+  );
 
-    await saveJSON(gamedataPath, gamedata);
-  }
+  // unpack all fields needed by SSDD
+  const {
+    reward,
+    userGame,
+    evolved,
+    oldStage,
+    newStage,
+    moodChanged,
+    oldMood,
+    newMood,
+    storyProgress
+  } = result;
+
+  session.reward = reward.currency;
 
   res.json({
     ok: true,
     session,
+    reward,
     newCurrency: userGame ? userGame.currency : null,
+    pet: userGame ? userGame.pet : null,
+
+    // SSDD: Pet reacts
+    evolved,
+    oldStage,
+    newStage,
+
+    moodChanged,
+    oldMood,
+    newMood,
+
+    // SSDD: Story progression
+    storyProgress: storyProgress || 0
   });
 });
 
-// GET USER SESSIONS
+
+// GET SESSIONS for current authenticated user (SSDD required)
+app.get("/api/sessions/me", auth, (req, res) => {
+  const uid = req.user.id;
+  const userSessions = sessions.filter(s => s.userId === uid);
+
+  res.json({
+    ok: true,
+    sessions: userSessions
+  });
+});
+
+
+// GET USER SESSIONS (admin/debug)
 app.get("/api/session/:userId", auth, (req, res) => {
   const uid = Number(req.params.userId);
   const userSessions = sessions.filter((s) => s.userId === uid);
@@ -228,11 +464,218 @@ app.get("/api/session/:userId", auth, (req, res) => {
   });
 });
 
-// ----------------------------
-// END SESSION SYSTEM
-// ----------------------------
+
+// Manually apply reward (e.g., frontend custom duration)
+app.post("/api/reward/apply", auth, async (req, res) => {
+  const { duration } = req.body;
+
+  if (typeof duration !== "number" || duration <= 0) {
+    return res
+      .status(400)
+      .json({ ok: false, message: "Invalid duration value" });
+  }
+
+  const { reward, userGame } = await applyRewardToUser(
+    req.user.id,
+    duration,
+    null
+  );
+
+  res.json({
+    ok: true,
+    reward,
+    newCurrency: userGame ? userGame.currency : null,
+    pet: userGame ? userGame.pet : null,
+  });
+});
+
+
+//
+// --------------------------
+// STORE RELATED SYSTEM
+// 1. FILTER ITEMS BY PET TYPE
+// 2. PURCHASE ITEM
+// 3. EQUIP ITEM
+// --------------------------
+//
+
+// GET store items based on user's pet type
+app.get("/api/store/list", (req, res) => {
+  const userId = parseInt(req.query.userId);
+
+  const user = gamedata.find((u) => u.userId === userId);
+  if (!user) {
+    return res.status(404).json({ ok: false, error: "User not found" });
+  }
+
+  if (!user.pet || !user.pet.type) {
+    return res.status(400).json({ ok: false, error: "User has no pet type" });
+  }
+
+  const petType = user.pet.type;
+  const availableItems = storeData.filter((item) => item.petType === petType);
+
+  res.json({
+    ok: true,
+    store: availableItems,
+  });
+});
+
+// PURCHASE ITEM
+app.post("/api/purchase", async (req, res) => {
+  const { userId, itemId } = req.body;
+
+  const user = gamedata.find((u) => u.userId === userId);
+  if (!user) {
+    return res.status(404).json({ ok: false, error: "User not found" });
+  }
+
+  const item = storeData.find((i) => i.id === itemId);
+  if (!item) {
+    return res.status(404).json({ ok: false, error: "Item not found" });
+  }
+
+  if (!user.pet || item.petType !== user.pet.type) {
+    return res.status(400).json({
+      ok: false,
+      error: "This item cannot be equipped by your pet type",
+    });
+  }
+
+  if (user.currency < item.price) {
+    return res.status(400).json({
+      ok: false,
+      error: "Not enough currency",
+    });
+  }
+
+  user.currency -= item.price;
+
+  if (!user.inventory) user.inventory = [];
+  user.inventory.push({
+    itemId: itemId,
+    acquiredAt: new Date().toISOString(),
+  });
+
+  await saveGameData();
+
+  res.json({
+    ok: true,
+    message: "Purchase successful",
+    currency: user.currency,
+    inventory: user.inventory,
+  });
+});
+
+// EQUIP ITEM
+app.post("/api/equip", async (req, res) => {
+  const { userId, itemId } = req.body;
+
+  const user = gamedata.find((u) => u.userId === userId);
+  if (!user) {
+    return res.status(404).json({ ok: false, error: "User not found" });
+  }
+
+  if (!user.inventory) user.inventory = [];
+  if (!user.equipped) {
+    user.equipped = {
+      head: null,
+      body: null,
+      tail: null,
+      face: null,
+      neck: null,
+      shoes: null,
+      bowl: null,
+      toy: null,
+    };
+  }
+
+  const item = storeData.find((i) => i.id === itemId);
+  if (!item) {
+    return res.status(404).json({ ok: false, error: "Item not found" });
+  }
+
+  const hasItem = user.inventory.some((i) => i.itemId === itemId);
+  if (!hasItem) {
+    return res.status(400).json({
+      ok: false,
+      error: "You do not own this item",
+    });
+  }
+
+  if (!user.pet || item.petType !== user.pet.type) {
+    return res.status(400).json({
+      ok: false,
+      error: "This item is not compatible with your pet type",
+    });
+  }
+
+  const slot = item.category;
+  user.equipped[slot] = itemId;
+
+  await saveGameData();
+
+  res.json({
+    ok: true,
+    message: "Item equipped successfully",
+    equipped: user.equipped,
+  });
+});
+
+//
+// --------------------------
+// INVENTORY AND PET STATUS
+// --------------------------
+//
+
+app.get("/api/inventory", auth, (req, res) => {
+  const userGame = gamedata.find((g) => g.userId === req.user.id);
+  if (!userGame) {
+    return res.status(404).json({ ok: false, message: "No gamedata found" });
+  }
+
+  res.json({
+    ok: true,
+    currency: userGame.currency || 0,
+    inventory: userGame.inventory || [],
+    equipped: userGame.equipped || {},
+  });
+});
+
+app.get("/api/pet/status", auth, (req, res) => {
+  const userGame = gamedata.find((g) => g.userId === req.user.id);
+  if (!userGame) {
+    return res.status(404).json({ ok: false, message: "No gamedata found" });
+  }
+
+  if (!userGame.pet) {
+    userGame.pet = {
+      type: "Cat",
+      exp: 0,
+      growthStage: "baby",
+      mood: "neutral",
+    };
+  }
+
+  res.json({
+    ok: true,
+    pet: userGame.pet,
+    equipped: userGame.equipped || {},
+    currency: userGame.currency || 0,
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`Backend listening on http://localhost:${PORT}`);
 });
+
+
+
+
+
+
+
+
+
+
 
