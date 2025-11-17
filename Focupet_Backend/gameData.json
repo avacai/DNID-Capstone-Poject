@@ -10,14 +10,20 @@
     "sessions": [
       {
         "id": 1697636130000,
-        "start": "2025-10-18T08:15:30Z",
-        "end": "2025-10-18T08:45:00Z",
+        "task": null,
+        "taskId": null,
+        "startTime": "2025-10-18T08:15:30Z",
+        "endTime": "2025-10-18T08:45:00Z",
+        "duration": 1770,
         "reward": 20
       },
       {
         "id": 1697722530000,
-        "start": "2025-10-19T09:00:00Z",
-        "end": "2025-10-19T09:30:10Z",
+        "task": null,
+        "taskId": null,
+        "startTime": "2025-10-19T09:00:00Z",
+        "endTime": "2025-10-19T09:30:10Z",
+        "duration": 1810,
         "reward": 30
       }
     ],
@@ -34,7 +40,12 @@
       { "id": "story_1", "title": "Welcome to FocuPet", "progress": 100 }
     ],
     "tasks": [
-      { "id": "task_1", "title": "Feed your pet", "completed": true, "due": "2025-10-20T00:00:00Z" }
+      {
+        "id": "task_1",
+        "title": "Feed your pet",
+        "completed": true,
+        "due": "2025-10-20T00:00:00Z"
+      }
     ]
   },
   {
@@ -48,14 +59,20 @@
     "sessions": [
       {
         "id": 1697549735000,
-        "start": "2025-10-17T07:15:35Z",
-        "end": "2025-10-17T07:45:40Z",
+        "task": null,
+        "taskId": null,
+        "startTime": "2025-10-17T07:15:35Z",
+        "endTime": "2025-10-17T07:45:40Z",
+        "duration": 181,
         "reward": 15
       },
       {
         "id": 1697636135000,
-        "start": "2025-10-18T08:15:35Z",
-        "end": "2025-10-18T08:50:00Z",
+        "task": null,
+        "taskId": null,
+        "startTime": "2025-10-18T08:15:35Z",
+        "endTime": "2025-10-18T08:50:00Z",
+        "duration": 2065,
         "reward": 15
       }
     ],
@@ -79,8 +96,11 @@
     "sessions": [
       {
         "id": 1697463330000,
-        "start": "2025-10-16T06:15:30Z",
-        "end": "2025-10-16T06:20:45Z",
+        "task": null,
+        "taskId": null,
+        "startTime": "2025-10-16T06:15:30Z",
+        "endTime": "2025-10-16T06:20:45Z",
+        "duration": 315,
         "reward": 5
       }
     ],

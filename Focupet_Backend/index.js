@@ -1,9 +1,9 @@
-import express from 'express';
-import cors from 'cors';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import fs from 'node:fs/promises';
-import crypto from 'node:crypto';
+import express from "express";
+import cors from "cors";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs/promises";
+import crypto from "node:crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,51 +11,47 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middlewares
+app.use((req, _res, next) => {
+  console.log("request received:", req.method, req.url);
+  next();
+});
+
 app.use(express.json());
 
-// CORS: allow common local ports in development; in production, set CLIENT_ORIGIN environment variable
-const allowedOrigins = new Set([
-  process.env.CLIENT_ORIGIN || '',
-  'http://localhost:3000', // CRA
-  'http://127.0.0.1:3000',
-  'http://localhost:5173', // Vite default
-  'http://127.0.0.1:5173',
-].filter(Boolean));
-
+// CORS
 app.use(
   cors({
-    origin(origin, cb) {
-      // No Origin means same-origin or curl; allow during development
-      if (!origin) return cb(null, true);
-      if (allowedOrigins.size === 0) return cb(null, true); // if no specific origins defined, allow by default during development
-      return cb(null, allowedOrigins.has(origin));
-    },
+    origin: "*",
     credentials: true,
   })
 );
 
-// Load hardcoded users
-const usersPath = path.join(__dirname, 'users.json');
-let users = [];
-try {
-  users = JSON.parse(await fs.readFile(usersPath, 'utf-8'));
-} catch (e) {
-  console.error('Failed to read users.json:', e);
+// FILE PATHS
+const usersPath = path.join(__dirname, "users.json");
+const gamedataPath = path.join(__dirname, "gamedata.json");
+const sessionPath = path.join(__dirname, "session.json");
+
+// LOAD FILE HELPERS
+async function loadJSON(path, fallback = []) {
+  try {
+    const raw = await fs.readFile(path, "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
 }
 
-// Optional: load game data (if exists)
-const gamedataPath = path.join(__dirname, 'gamedata.json');
-let gamedata = null;
-try {
-  gamedata = JSON.parse(await fs.readFile(gamedataPath, 'utf-8'));
-  console.log('Loaded gamedata.json');
-} catch {
-  console.log('gamedata.json not found (optional).');
+async function saveJSON(path, data) {
+  await fs.writeFile(path, JSON.stringify(data, null, 2), "utf-8");
 }
 
-// Simple in-memory session: token -> user (no password)
-const sessions = new Map();
+// LOAD DATA
+let users = await loadJSON(usersPath, []);
+let gamedata = await loadJSON(gamedataPath, []);
+let sessions = await loadJSON(sessionPath, []);
+
+// SESSION TOKEN (LOGIN)
+const tokens = new Map();
 
 function sanitizeUser(u) {
   if (!u) return null;
@@ -64,105 +60,179 @@ function sanitizeUser(u) {
 }
 
 function createToken() {
-  return 'demo_' + crypto.randomBytes(12).toString('hex');
+  return "token_" + crypto.randomBytes(16).toString("hex");
 }
 
-// Routes
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, status: 'healthy' });
+// AUTH MIDDLEWARE
+function auth(req, res, next) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!token || !tokens.has(token)) {
+    return res.status(401).json({ ok: false, message: "Unauthorized" });
+  }
+  req.user = tokens.get(token); // { id, email }
+  next();
+}
+
+// ROUTES
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, status: "healthy" });
 });
 
-// Login: email + password
-app.post('/api/login', (req, res) => {
+// LOGIN
+app.post("/api/login", (req, res) => {
   const { email, password } = req.body || {};
-  if (!email || !password) {
-    return res.status(400).json({ ok: false, message: 'Email and password are required' });
-  }
+
   const user = users.find((u) => u.email === email && u.password === password);
   if (!user) {
-    return res.status(401).json({ ok: false, message: 'Invalid credentials' });
+    return res.status(401).json({ ok: false, message: "Invalid credentials" });
   }
+
   const token = createToken();
   const safeUser = sanitizeUser(user);
-  sessions.set(token, safeUser);
+  tokens.set(token, safeUser);
 
-  // If gamedata exists, attach initial progress here (adjust return structure as needed)
+  const userData = gamedata.find((g) => g.userId === safeUser.id);
+
   return res.json({
     ok: true,
     token,
     user: safeUser,
-    gamedata: gamedata ? { tasks: gamedata.tasks, pets: gamedata.pets, defaultProgress: gamedata.defaultProgress } : undefined,
+    gamedata: userData,
   });
 });
 
-// Logout: remove token
-app.post('/api/logout', (req, res) => {
-  const auth = req.headers.authorization || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-  if (token) sessions.delete(token);
-  return res.json({ ok: true });
+// LOGOUT
+app.post("/api/logout", auth, (req, res) => {
+  const header = req.headers.authorization;
+  const token = header.slice(7);
+  tokens.delete(token);
+  res.json({ ok: true });
 });
 
-// Get current user info
-app.get('/api/me', (req, res) => {
-  const auth = req.headers.authorization || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-  if (!token || !sessions.has(token)) {
-    return res.status(401).json({ ok: false, message: 'Unauthorized' });
+// ME
+app.get("/api/me", auth, (req, res) => {
+  res.json({ ok: true, user: req.user });
+});
+
+// GET GAMEDATA (SELF)
+app.get("/api/gamedata", auth, (req, res) => {
+  const userGame = gamedata.find((g) => g.userId === req.user.id);
+  if (!userGame) {
+    return res.status(404).json({ ok: false, message: "No gamedata found" });
   }
-  return res.json({ ok: true, user: sessions.get(token) });
+  res.json({ ok: true, gamedata: userGame });
 });
 
-// Optional: if backend should serve game data
-app.get('/api/gamedata', (_req, res) => {
-  if (!gamedata) return res.status(404).json({ ok: false, message: 'gamedata not found' });
-  return res.json({ ok: true, gamedata });
+//
+// --------------------------
+// SESSION SYSTEM START HERE
+// --------------------------
+//
+
+// START SESSION
+app.post("/api/session/start", auth, async (req, res) => {
+  const { task = null, taskId = null } = req.body;
+  const userId = req.user.id;
+
+  const now = new Date();
+  const sessionId = now.getTime();
+
+  const newSession = {
+    id: sessionId,
+    userId,
+    task,
+    taskId,
+    startTime: now.toISOString(),
+    endTime: null,
+    duration: null,
+    reward: 0,
+  };
+
+  sessions.push(newSession);
+  await saveJSON(sessionPath, sessions);
+
+  res.json({ ok: true, session: newSession });
 });
 
-// Production: serve frontend static assets (auto-detect common build directories)
-function findStaticDir() {
-  const candidates = [
-    // Common locations relative to backend directory
-    path.join(__dirname, 'public'), // if frontend output is placed under backend/public
-    path.join(__dirname, 'client', 'build'), // CRA under backend/client
-    path.join(__dirname, '..', 'client', 'build'), // CRA under repo root/client parallel to backend
-    path.join(__dirname, 'frontend', 'dist'), // Vite under backend/frontend
-    path.join(__dirname, '..', 'frontend', 'dist'), // Vite under repo root/frontend
-    path.join(__dirname, '..', 'dist'), // other custom dist
-  ];
-  return Promise.all(
-    candidates.map(async (p) => {
-      try {
-        const st = await fs.stat(p);
-        return st.isDirectory() ? p : null;
-      } catch {
-        return null;
-      }
-    })
-  ).then((arr) => arr.find(Boolean) || null);
-}
+// END SESSION
+app.post("/api/session/end", auth, async (req, res) => {
+  const { sessionId } = req.body;
+  const userId = req.user.id;
 
-const isProd = process.env.NODE_ENV === 'production';
-if (isProd) {
-  const staticDir = await findStaticDir();
-  if (staticDir) {
-    console.log('Serving static assets from:', staticDir);
-    app.use(express.static(staticDir));
-    // SPA fallback
-    app.get('*', async (req, res, next) => {
-      try {
-        const indexPath = path.join(staticDir, 'index.html');
-        await fs.access(indexPath);
-        res.sendFile(indexPath);
-      } catch (e) {
-        next();
-      }
+  const session = sessions.find(
+    (s) => s.id === sessionId && s.userId === userId
+  );
+
+  if (!session) {
+    return res.status(404).json({ ok: false, message: "Session not found" });
+  }
+
+  if (session.endTime) {
+    return res.json({ ok: true, session, message: "Session already ended" });
+  }
+
+  const end = new Date();
+  const start = new Date(session.startTime);
+
+  const duration = Math.max(
+    0,
+    Math.floor((end.getTime() - start.getTime()) / 1000)
+  );
+
+  const reward = Math.floor(duration / 300) * 5; // 5 minutes = 5 coins
+
+  session.endTime = end.toISOString();
+  session.duration = duration;
+  session.reward = reward;
+
+  await saveJSON(sessionPath, sessions);
+
+  // SYNC TO GAMEDATA
+  const userGame = gamedata.find((g) => g.userId === userId);
+  if (userGame) {
+    userGame.currency += reward;
+
+    if (!Array.isArray(userGame.sessions)) {
+      userGame.sessions = [];
+    }
+
+    userGame.sessions.push({
+      id: session.id,
+      task: session.task,
+      taskId: session.taskId,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      duration: session.duration,
+      reward: session.reward,
     });
-  } else {
-    console.warn('No static build folder found. Skipping static hosting.');
+
+    await saveJSON(gamedataPath, gamedata);
   }
-}
+
+  res.json({
+    ok: true,
+    session,
+    newCurrency: userGame ? userGame.currency : null,
+  });
+});
+
+// GET USER SESSIONS
+app.get("/api/session/:userId", auth, (req, res) => {
+  const uid = Number(req.params.userId);
+  const userSessions = sessions.filter((s) => s.userId === uid);
+
+  res.json({
+    ok: true,
+    sessions: userSessions,
+  });
+});
+
+// ----------------------------
+// END SESSION SYSTEM
+// ----------------------------
 
 app.listen(PORT, () => {
   console.log(`Backend listening on http://localhost:${PORT}`);
 });
+
