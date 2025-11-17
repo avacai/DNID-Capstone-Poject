@@ -1,8 +1,117 @@
-{
-  "availableItems": [
-    { "id": "item_health_potion", "name": "Health Potion", "type": "food", "price": 10 },
-    { "id": "item_speed_boost", "name": "Speed Boost", "type": "boost", "price": 25 },
-    { "id": "item_bow", "name": "Bow", "type": "accessory", "price": 8 },
-    { "id": "item_mini_treat", "name": "Mini Treat", "type": "food", "price": 5 }
-  ]
-}
+[
+  {
+    "id": "milk_bowl",
+    "name": "Milk Bowl",
+    "petType": "Cat",
+    "category": "bowl",
+    "price": 8,
+    "type": "accessory"
+  },
+  {
+    "id": "bow_pink",
+    "name": "Pink Ribbon Bow",
+    "petType": "Cat",
+    "category": "head",
+    "price": 10,
+    "type": "accessory"
+  },
+  {
+    "id": "collar_blue",
+    "name": "Blue Collar",
+    "petType": "Cat",
+    "category": "neck",
+    "price": 15,
+    "type": "accessory"
+  },
+  {
+    "id": "toy_mouse",
+    "name": "Toy Mouse",
+    "petType": "Cat",
+    "category": "toy",
+    "price": 5,
+    "type": "accessory"
+  },
+
+  {
+    "id": "bone",
+    "name": "Dog Bone",
+    "petType": "Dog",
+    "category": "toy",
+    "price": 6,
+    "type": "accessory"
+  },
+  {
+    "id": "collar_red",
+    "name": "Red Collar",
+    "petType": "Dog",
+    "category": "neck",
+    "price": 15,
+    "type": "accessory"
+  },
+  {
+    "id": "hat_yellow",
+    "name": "Yellow Hat",
+    "petType": "Dog",
+    "category": "head",
+    "price": 12,
+    "type": "accessory"
+  },
+  {
+    "id": "dog_ball",
+    "name": "Rubber Dog Ball",
+    "petType": "Dog",
+    "category": "toy",
+    "price": 7,
+    "type": "accessory"
+  },
+
+  {
+    "id": "rain_boots",
+    "name": "Rain Boots",
+    "petType": "Duck",
+    "category": "shoes",
+    "price": 12,
+    "type": "accessory"
+  },
+  {
+    "id": "bow_green",
+    "name": "Green Bow",
+    "petType": "Duck",
+    "category": "head",
+    "price": 8,
+    "type": "accessory"
+  },
+
+  {
+    "id": "tophat",
+    "name": "Black Top Hat",
+    "petType": "Seal",
+    "category": "head",
+    "price": 20,
+    "type": "accessory"
+  },
+  {
+    "id": "glasses",
+    "name": "Round Glasses",
+    "petType": "Seal",
+    "category": "face",
+    "price": 18,
+    "type": "accessory"
+  },
+  {
+    "id": "sweater_blue",
+    "name": "Blue Sweater",
+    "petType": "Seal",
+    "category": "body",
+    "price": 25,
+    "type": "accessory"
+  },
+  {
+    "id": "fish_toy",
+    "name": "Fish Plush Toy",
+    "petType": "Seal",
+    "category": "toy",
+    "price": 10,
+    "type": "accessory"
+  }
+]

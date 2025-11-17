@@ -1,7 +1,28 @@
-[
-  { "id": "reward_coin_small", "name": "Small Coin Pack", "amount": 10, "type": "currency" },
-  { "id": "reward_coin_medium", "name": "Medium Coin Pack", "amount": 30, "type": "currency" },
-  { "id": "reward_treat", "name": "Mini Treat", "itemId": "item_mini_treat", "type": "item" },
-  { "id": "reward_story_fragment", "name": "Story Fragment", "storyId": "story_1", "type": "story" }
-]
+{
+  "currencyPer5Min": 5,
+  "petExpPerSession": 3,
 
+  "storyProgressPer25Min": 1,
+
+  "moodRules": {
+    "shortSession": "okay",
+    "mediumSession": "happy",
+    "longSession": "happy"
+  },
+
+  "expThresholds": {
+    "baby_to_teen": 20,
+    "teen_to_adult": 50
+  },
+
+  "bonusThresholds": {
+    "tasksCompleted": {
+      "3": 5,
+      "5": 15
+    }
+  },
+
+  "accessoryUnlockRules": {
+    "unlockEveryXSessions": 3
+  }
+}
