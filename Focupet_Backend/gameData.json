@@ -32,7 +32,7 @@
     "storyProgress": 0,
     "tasks": [
       {
-        "id": "task_1",
+        "id": "1700000000001",
         "title": "Feed your pet",
         "completed": true,
         "due": "2025-10-20T00:00:00Z"
