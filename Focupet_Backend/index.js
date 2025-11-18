@@ -33,6 +33,13 @@ const sessionPath = path.join(__dirname, "session.json");
 const storePath = path.join(__dirname, "store.json");
 const rewardsPath = path.join(__dirname, "rewards.json");
 
+const tasksPath = path.join(__dirname, "tasks.json");
+let tasks = loadJSON(tasksPath, []);
+
+const systemTasksPath = path.join(__dirname, "system_tasks.json");
+let systemTasks = loadJSON(systemTasksPath, []);
+
+
 // LOAD FILE HELPERS
 async function loadJSON(path, fallback = []) {
   try {
@@ -419,6 +426,27 @@ app.post("/api/session/end", auth, async (req, res) => {
 
   session.reward = reward.currency;
 
+  // Auto-complete task if session has taskId
+  if (session.taskId) {
+    const linkedTask = tasks.find(
+      t => t.id === session.taskId && t.userId === userId
+    );
+
+    if (linkedTask && !linkedTask.completed) {
+      linkedTask.completed = true;
+      linkedTask.completedAt = new Date().toISOString();
+
+      // Add task reward to currency
+      if (userGame) {
+        userGame.currency =
+          (userGame.currency || 0) + (linkedTask.reward || 0);
+      }
+
+      await saveJSON(tasksPath, tasks);
+      await saveGameData();
+    }
+  }
+
   res.json({
     ok: true,
     session,
@@ -426,16 +454,15 @@ app.post("/api/session/end", auth, async (req, res) => {
     newCurrency: userGame ? userGame.currency : null,
     pet: userGame ? userGame.pet : null,
 
-    // SSDD: Pet reacts
+    // Pet reacts
     evolved,
     oldStage,
     newStage,
-
     moodChanged,
     oldMood,
     newMood,
 
-    // SSDD: Story progression
+    // Story progression
     storyProgress: storyProgress || 0
   });
 });
@@ -657,6 +684,33 @@ app.get("/api/pet/status", auth, (req, res) => {
     };
   }
 
+// Unified Game State (SSDD: Pet View + Store + Inventory + Story)
+app.get("/api/game/state", auth, (req, res) => {
+  const userId = req.user.id;
+  const userGame = gamedata.find(g => g.userId === userId);
+
+  if (!userGame) {
+    return res.status(404).json({ ok: false, message: "No gamedata found" });
+  }
+
+  // Filter store items for this pet
+  const petType = userGame.pet?.type;
+  const availableStoreItems = storeData.filter(
+    item => item.petType === petType
+  );
+
+  res.json({
+    ok: true,
+    pet: userGame.pet,
+    currency: userGame.currency || 0,
+    equipped: userGame.equipped || {},
+    inventory: userGame.inventory || [],
+    storyProgress: userGame.storyProgress || 0,
+    store: availableStoreItems
+  });
+});
+
+
   res.json({
     ok: true,
     pet: userGame.pet,
@@ -664,6 +718,91 @@ app.get("/api/pet/status", auth, (req, res) => {
     currency: userGame.currency || 0,
   });
 });
+
+//---------------------
+// --- TASK SYSTEM ---
+//---------------------
+
+// Get Suggested Tasks (from system_tasks.json)
+app.get("/api/tasks/suggest", auth, (req, res) => {
+  res.json({
+    ok: true,
+    tasks: systemTasks
+  });
+});
+
+// Get User's Personal Tasks
+app.get("/api/tasks/me", auth, (req, res) => {
+  const uid = req.user.id;
+  const userTasks = tasks.filter(t => t.userId === uid);
+
+  res.json({
+    ok: true,
+    tasks: userTasks
+  });
+});
+
+// Add a new personal task
+app.post("/api/tasks/add", auth, async (req, res) => {
+  const uid = req.user.id;
+  const { title, due = null, reward = 0 } = req.body;
+
+  if (!title || typeof title !== "string") {
+    return res.status(400).json({ ok: false, message: "Invalid task title" });
+  }
+
+  const newTask = {
+    id: Date.now(),
+    userId: uid,
+    title,
+    due,
+    reward,
+    completed: false,
+    createdAt: new Date().toISOString()
+  };
+
+  tasks.push(newTask);
+  await saveJSON(tasksPath, tasks);
+
+  res.json({ ok: true, task: newTask });
+});
+
+
+// Complete a task manually
+app.post("/api/tasks/complete", auth, async (req, res) => {
+  const uid = req.user.id;
+  const { taskId } = req.body;
+
+  const task = tasks.find(t => t.id === taskId && t.userId === uid);
+
+  if (!task) {
+    return res.status(404).json({ ok: false, message: "Task not found" });
+  }
+
+  if (task.completed) {
+    return res.json({ ok: true, task, message: "Task already completed" });
+  }
+
+  task.completed = true;
+  task.completedAt = new Date().toISOString();
+
+  // Add task reward to gamedata
+  const userGame = gamedata.find(g => g.userId === uid);
+  if (userGame) {
+    userGame.currency = (userGame.currency || 0) + (task.reward || 0);
+    await saveGameData();
+  }
+
+  await saveJSON(tasksPath, tasks);
+
+  res.json({
+    ok: true,
+    task,
+    newCurrency: userGame ? userGame.currency : null
+  });
+});
+
+
 
 app.listen(PORT, () => {
   console.log(`Backend listening on http://localhost:${PORT}`);
