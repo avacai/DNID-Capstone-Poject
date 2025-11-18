@@ -1,13 +1,11 @@
 [
   {
-    "id": "task_1",
+    "id": 1700000000001,
     "userId": 1,
     "title": "Feed your pet",
-    "description": "Give your FocuPet a nutritious meal.",
     "due": "2025-11-12T21:00:00Z",
     "reward": 10,
     "completed": false,
     "createdAt": "2025-11-01T10:00:00Z"
   }
 ]
-  

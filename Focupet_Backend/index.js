@@ -508,6 +508,29 @@ app.post("/api/reward/apply", auth, async (req, res) => {
     null
   );
 
+// ------- STORY UNLOCK (Placeholder) -------
+if (systemStories && Array.isArray(systemStories)) {
+  const progress = userGame.storyProgress || 0;
+  // Ensure user stories exist
+  if (!Array.isArray(userGame.stories)) {
+    userGame.stories = systemStories.map(s => ({
+      id: s.id,
+      unlocked: s.threshold === 0
+    }));
+  }
+
+  systemStories.forEach(story => {
+    if (progress >= story.threshold) {
+      const entry = userGame.stories.find(s => s.id === story.id);
+      if (entry && !entry.unlocked) {
+        entry.unlocked = true;
+      }
+    }
+  });
+
+  await saveGameData();
+}
+
   res.json({
     ok: true,
     reward,
@@ -669,6 +692,7 @@ app.get("/api/inventory", auth, (req, res) => {
   });
 });
 
+// PET STATUS
 app.get("/api/pet/status", auth, (req, res) => {
   const userGame = gamedata.find((g) => g.userId === req.user.id);
   if (!userGame) {
@@ -684,7 +708,16 @@ app.get("/api/pet/status", auth, (req, res) => {
     };
   }
 
-// Unified Game State (SSDD: Pet View + Store + Inventory + Story)
+  res.json({
+    ok: true,
+    pet: userGame.pet,
+    equipped: userGame.equipped || {},
+    currency: userGame.currency || 0,
+    stories: userGame.stories || []
+  });
+});
+
+// Unified Game State 
 app.get("/api/game/state", auth, (req, res) => {
   const userId = req.user.id;
   const userGame = gamedata.find(g => g.userId === userId);
@@ -706,16 +739,8 @@ app.get("/api/game/state", auth, (req, res) => {
     equipped: userGame.equipped || {},
     inventory: userGame.inventory || [],
     storyProgress: userGame.storyProgress || 0,
+    stories: userGame.stories || [],
     store: availableStoreItems
-  });
-});
-
-
-  res.json({
-    ok: true,
-    pet: userGame.pet,
-    equipped: userGame.equipped || {},
-    currency: userGame.currency || 0,
   });
 });
 

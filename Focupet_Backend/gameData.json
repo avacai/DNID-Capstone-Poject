@@ -28,9 +28,7 @@
         "reward": 30
       }
     ],
-    "stories": [
-      { "id": "story_1", "title": "Welcome to FocuPet", "progress": 100 }
-    ],
+    "stories": [],
     "storyProgress": 0,
     "tasks": [
       {
