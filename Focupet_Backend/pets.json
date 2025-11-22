@@ -1,23 +1,52 @@
 [
   {
     "type": "Cat",
-    "description": "Quiet, reserved, stays up late",
-    "baseMood": "happy",
-    "levels": [
-      { "level": 1, "expRequired": 0, "image": "cat_level1.png" },
-      { "level": 2, "expRequired": 100, "image": "cat_level2.png" },
-      { "level": 3, "expRequired": 300, "image": "cat_level3.png" }
-    ],
-    "accessories": ["milk_bowl", "bows", "collar", "toy_mouse"]
+    "traits": ["quiet", "creative", "night_owl"],
+    "growthStages": ["baby", "teen", "adult"],
+    "moodStates": ["sad", "okay", "happy"],
+    "baseExpGrowth": 3,
+    "accessories": [
+      "milk_bowl",
+      "bow_pink",
+      "collar_blue",
+      "toy_mouse"
+    ]
   },
   {
     "type": "Dog",
-    "description": "Loyal and energetic",
-    "baseMood": "happy",
-    "levels": [
-      { "level": 1, "expRequired": 0, "image": "dog_level1.png" },
-      { "level": 2, "expRequired": 100, "image": "dog_level2.png" }
-    ],
-    "accessories": ["bone", "ball", "collar"]
+    "traits": ["loud", "funny", "sleepy"],
+    "growthStages": ["baby", "teen", "adult"],
+    "moodStates": ["sad", "okay", "happy"],
+    "baseExpGrowth": 2,
+    "accessories": [
+      "bone",
+      "collar_red",
+      "hat_yellow",
+      "dog_ball"
+    ]
+  },
+  {
+    "type": "Duck",
+    "traits": ["childish", "water_lover", "spring_spirit"],
+    "growthStages": ["baby", "teen", "adult"],
+    "moodStates": ["sad", "okay", "happy"],
+    "baseExpGrowth": 2,
+    "accessories": [
+      "rain_boots",
+      "bow_green"
+    ]
+  },
+  {
+    "type": "Seal",
+    "traits": ["shy", "eats_alot", "winter_spirit"],
+    "growthStages": ["baby", "teen", "adult"],
+    "moodStates": ["sad", "okay", "happy"],
+    "baseExpGrowth": 4,
+    "accessories": [
+      "tophat",
+      "glasses",
+      "sweater_blue",
+      "fish_toy"
+    ]
   }
 ]

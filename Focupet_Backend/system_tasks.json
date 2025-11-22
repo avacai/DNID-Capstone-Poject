@@ -1,0 +1,37 @@
+[
+  {
+    "id": "task_read_20min",
+    "title": "Read for 20 minutes",
+    "category": "focus",
+    "baseReward": 5,
+    "description": "Spend 20 minutes reading something you enjoy."
+  },
+  {
+    "id": "task_water_break",
+    "title": "Drink a full glass of water",
+    "category": "self_care",
+    "baseReward": 3,
+    "description": "Hydrate yourself with a full cup of water."
+  },
+  {
+    "id": "task_walk_10min",
+    "title": "Take a 10-minute walk",
+    "category": "self_care",
+    "baseReward": 4,
+    "description": "Go outside and take a quick refreshing walk."
+  },
+  {
+    "id": "task_journal",
+    "title": "Write 5 sentences in your journal",
+    "category": "creative",
+    "baseReward": 4,
+    "description": "Reflect your thoughts in your personal journal."
+  },
+  {
+    "id": "task_clean_desk",
+    "title": "Clean your workspace",
+    "category": "environment",
+    "baseReward": 6,
+    "description": "Tidy up your desk for a clearer mind."
+  }
+]

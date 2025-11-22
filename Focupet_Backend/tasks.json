@@ -1,20 +1,11 @@
 [
   {
-    "id": "task_1",
+    "id": 1700000000001,
     "userId": 1,
     "title": "Feed your pet",
-    "description": "Give your FocuPet a nutritious meal.",
     "due": "2025-11-12T21:00:00Z",
     "reward": 10,
-    "completed": true
-  },
-  {
-    "id": "task_2",
-    "userId": 1,
-    "title": "Complete a 25‑min focus session",
-    "description": "Start a focus timer and avoid distractions.",
-    "due": "2025-11-15T20:00:00Z",
-    "reward": 15,
-    "completed": false
+    "completed": false,
+    "createdAt": "2025-11-01T10:00:00Z"
   }
 ]

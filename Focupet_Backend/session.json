@@ -2,17 +2,29 @@
   {
     "id": 1697636130000,
     "userId": 1,
-    "taskId": "task_2",
-    "start": "2025-11-10T08:15:30Z",
-    "end": "2025-11-10T08:45:00Z",
+    "task": "preparing breakfast",
+    "startTime": "2025-11-10T08:15:30Z",
+    "endTime": "2025-11-10T08:45:00Z",
+    "duration": 1800,
     "reward": 20
   },
   {
     "id": 1697722530000,
     "userId": 2,
-    "taskId": null,
-    "start": "2025-11-11T09:00:00Z",
-    "end": "2025-11-11T09:30:10Z",
+    "task": "cleaning my bedroom",
+    "startTime": "2025-11-11T09:00:00Z",
+    "endTime": "2025-11-11T09:30:10Z",
+    "duration": 1810,
     "reward": 15
+  },
+  {
+    "id": 1763430649374,
+    "userId": 1,
+    "task": "study",
+    "taskId": null,
+    "startTime": "2025-11-18T01:50:49.374Z",
+    "endTime": null,
+    "duration": null,
+    "reward": 0
   }
 ]
