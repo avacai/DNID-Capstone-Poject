@@ -1,11 +1,20 @@
-import { Tabs } from 'expo-router';
+import { Tabs } from "expo-router";
+import BottomDock from "@/components/BottomDock";
 
 export default function TabsLayout() {
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: false,
+        tabBarStyle: { position: "absolute" }, // allow our custom bar to overlay nicely
+      }}
+      tabBar={(props) => <BottomDock {...props} />}
+    >
       <Tabs.Screen name="home" options={{ title: "Home" }} />
-      <Tabs.Screen name="story" options={{ title: "Story" }} />
       <Tabs.Screen name="store" options={{ title: "Store" }} />
+      <Tabs.Screen name="tasks" options={{ title: "Tasks" }} />
+      <Tabs.Screen name="story" options={{ title: "Story" }} />
     </Tabs>
   );
 }
