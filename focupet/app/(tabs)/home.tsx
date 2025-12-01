@@ -7,6 +7,7 @@ import {
   Pressable,
   Animated,
   Modal,
+  ImageBackground,
 } from "react-native";
 import TaskModal, { SessionTask } from "@/components/TaskModal";
 import TimerModal from "@/components/TimerModal";
@@ -49,85 +50,108 @@ export default function Home() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFDF5" />
+    <ImageBackground
+      source={require("@/assets/bg/background1.png")}
+      style={styles.bg}
+      imageStyle={styles.bgImage}
+    >
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFDF5" />
 
-      {/* top icons */}
-      <View style={styles.topRow}>
-        <Pressable onPress={() => console.log("Settings")}>
-          <Image
-            source={require("@/assets/ui/setting.png")}
-            style={styles.icon}
+        {/* top icons */}
+        <View style={styles.topRow}>
+          <Pressable onPress={() => console.log("Settings")}>
+            <Image
+              source={require("@/assets/ui/setting.png")}
+              style={styles.icon}
+            />
+          </Pressable>
+
+          <Pressable onPress={() => console.log("Music toggle")}>
+            <Image
+              source={require("@/assets/ui/music.png")}
+              style={styles.icon}
+            />
+          </Pressable>
+        </View>
+
+        {/* coin bar */}
+        <View style={styles.coinRow}>
+          <CoinBar
+            coins={120} // later this comes from state
+            onPressPlus={() => console.log("Open coin purchase / store")}
           />
-        </Pressable>
+        </View>
 
-        <Pressable onPress={() => console.log("Music toggle")}>
+        {/* PET CIRCLE + CAT */}
+        <View style={styles.petCircle}>
           <Image
-            source={require("@/assets/ui/music.png")}
-            style={styles.icon}
+            source={require("@/assets/pets/cat1.png")}
+            style={styles.petImage}
+            resizeMode="contain"
           />
-        </Pressable>
-      </View>
+        </View>
 
-    <View style={styles.coinRow}>
-      <CoinBar
-        coins={120} // later this comes from state
-        onPressPlus={() => console.log("Open coin purchase / store")}
-      />
-    </View>
+        {/* Start button */}
+        <View style={styles.startWrapper}>
+          <Pressable
+            onPressIn={pressIn}
+            onPressOut={pressOut}
+            onPress={() => setStep("tasks")}
+          >
+            <Animated.Image
+              source={require("@/assets/ui/start_b.png")}
+              style={[styles.startImage, { transform: [{ scale }] }]}
+            />
+          </Pressable>
+        </View>
 
-      {/* big pet circle placeholder */}
-      <View style={styles.petCircle} />
-
-      {/* Start button */}
-      <View style={styles.startWrapper}>
-        <Pressable
-          onPressIn={pressIn}
-          onPressOut={pressOut}
-          onPress={() => setStep("tasks")}
+        {/* --- TASK POPUP --- */}
+        <Modal
+          visible={step === "tasks"}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setStep("none")}
         >
-          <Animated.Image
-            source={require("@/assets/ui/start_b.png")}
-            style={[styles.startImage, { transform: [{ scale }] }]}
+          <TaskModal
+            initialTasks={sessionTasks}
+            onNext={handleTasksDone}
+            onClose={() => setStep("none")}
           />
-        </Pressable>
+        </Modal>
+
+        {/* --- TIMER POPUP --- */}
+        <Modal
+          visible={step === "timer"}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setStep("none")}
+        >
+          <TimerModal
+            initialMinutes={sessionMinutes}
+            onBack={() => setStep("tasks")}
+            onStart={handleTimerStart}
+          />
+        </Modal>
       </View>
-
-      {/* --- TASK POPUP --- */}
-      <Modal
-        visible={step === "tasks"}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setStep("none")}
-      >
-        <TaskModal
-          initialTasks={sessionTasks}
-          onNext={handleTasksDone}
-          onClose={() => setStep("none")}
-        />
-      </Modal>
-
-      {/* --- TIMER POPUP --- */}
-      <Modal
-        visible={step === "timer"}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setStep("none")}
-      >
-        <TimerModal
-          initialMinutes={sessionMinutes}
-          onBack={() => setStep("tasks")}
-          onStart={handleTimerStart}
-        />
-      </Modal>
-    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  // full-screen background
+  bg: {
+    flex: 1,
+  },
+  bgImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+
   container: {
     flex: 1,
-    backgroundColor: "#FFFDF5",
+    backgroundColor: "rgba(255, 253, 245, 0.8)", // soft overlay so UI pops on bg
     alignItems: "center",
     paddingTop: 60,
   },
@@ -146,19 +170,27 @@ const styles = StyleSheet.create({
     marginTop: 16,
     alignItems: "center",
   },
-  coinBar: {
-    width: 220,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#E8E3D7",
-  },
+
   petCircle: {
     marginTop: 60,
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: "#DFE1E4",
+    backgroundColor: "rgba(223, 225, 228, 0.95)",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
+  petImage: {
+    width: "80%",
+    height: "95%",
+    marginBottom: -10, // makes paws sit on the “floor” line
+  },
+
   startWrapper: {
     marginTop: 60,
   },
