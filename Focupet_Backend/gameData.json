@@ -3,11 +3,12 @@
     "userId": 1,
     "pet": {
       "type": "Cat",
-      "exp": 0,
-      "growthStage": "baby",
-      "mood": "happy"
+      "exp": 24,
+      "growthStage": "teen",
+      "mood": "happy",
+      "lastActiveAt": "2025-12-01T18:37:25.832Z"
     },
-    "currency": 150,
+    "currency": 265,
     "sessions": [
       {
         "id": 1697636130000,
@@ -26,10 +27,19 @@
         "endTime": "2025-10-19T09:30:10Z",
         "duration": 1810,
         "reward": 30
+      },
+      {
+        "id": 1764610737681,
+        "task": "study",
+        "taskId": null,
+        "startTime": "2025-12-01T17:38:57.681Z",
+        "endTime": "2025-12-01T17:40:02.305Z",
+        "duration": 64,
+        "reward": 0
       }
     ],
     "stories": [],
-    "storyProgress": 0,
+    "storyProgress": 4,
     "tasks": [
       {
         "id": "1700000000001",
@@ -38,7 +48,12 @@
         "due": "2025-10-20T00:00:00Z"
       }
     ],
-    "inventory": [],
+    "inventory": [
+      {
+        "itemId": "toy_mouse",
+        "acquiredAt": "2025-12-01T17:45:32.229Z"
+      }
+    ],
     "equipped": {
       "head": null,
       "body": null,
@@ -46,11 +61,10 @@
       "neck": null,
       "shoes": null,
       "bowl": null,
-      "toy": null,
+      "toy": "toy_mouse",
       "tail": null
     }
   },
-
   {
     "userId": 2,
     "pet": {
@@ -95,7 +109,6 @@
       "tail": null
     }
   },
-
   {
     "userId": 3,
     "pet": {

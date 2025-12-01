@@ -34,10 +34,10 @@ const storePath = path.join(__dirname, "store.json");
 const rewardsPath = path.join(__dirname, "rewards.json");
 
 const tasksPath = path.join(__dirname, "tasks.json");
-let tasks = loadJSON(tasksPath, []);
+let tasks = await loadJSON(tasksPath, []);
 
 const systemTasksPath = path.join(__dirname, "system_tasks.json");
-let systemTasks = loadJSON(systemTasksPath, []);
+let systemTasks = await loadJSON(systemTasksPath, []);
 
 
 // LOAD FILE HELPERS
@@ -491,7 +491,6 @@ app.get("/api/session/:userId", auth, (req, res) => {
   });
 });
 
-
 // Manually apply reward (e.g., frontend custom duration)
 app.post("/api/reward/apply", auth, async (req, res) => {
   const { duration } = req.body;
@@ -509,30 +508,30 @@ app.post("/api/reward/apply", auth, async (req, res) => {
   );
 
 // ------- STORY UNLOCK (Placeholder) -------
-if (systemStories && Array.isArray(systemStories)) {
-  const progress = userGame.storyProgress || 0;
+//if (systemStories && Array.isArray(systemStories)) {
+//  const progress = userGame.storyProgress || 0;
   // Ensure user stories exist
-  if (!Array.isArray(userGame.stories)) {
-    userGame.stories = systemStories.map(s => ({
-      id: s.id,
-      unlocked: s.threshold === 0
-    }));
-  }
+  //if (!Array.isArray(userGame.stories)) {
+  //  userGame.stories = systemStories.map(s => ({
+  //    id: s.id,
+//      unlocked: s.threshold === 0
+  //  }));
+//  }
 
-  systemStories.forEach(story => {
-    if (progress >= story.threshold) {
-      const entry = userGame.stories.find(s => s.id === story.id);
-      if (entry && !entry.unlocked) {
-        entry.unlocked = true;
-      }
-    }
-  });
+// systemStories.forEach(story => {
+//   if (progress >= story.threshold) {
+//     const entry = userGame.stories.find(s => s.id === story.id);
+//     if (entry && !entry.unlocked) {
+//       entry.unlocked = true;
+//      }
+//   }
+//  });
 
-  await saveGameData();
-}
+  //await saveGameData();
+//}
 
   res.json({
-    ok: true,
+   ok: true,
     reward,
     newCurrency: userGame ? userGame.currency : null,
     pet: userGame ? userGame.pet : null,
@@ -820,26 +819,9 @@ app.post("/api/tasks/complete", auth, async (req, res) => {
 
   await saveJSON(tasksPath, tasks);
 
-  res.json({
-    ok: true,
-    task,
-    newCurrency: userGame ? userGame.currency : null
-  });
+  res.json({ ok: true, task, newCurrency: userGame ? userGame.currency : null });
 });
-
-
 
 app.listen(PORT, () => {
-  console.log(`Backend listening on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
-
-
-
-
-
-
-
-
-
-
-
