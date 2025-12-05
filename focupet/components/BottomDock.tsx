@@ -2,19 +2,22 @@ import { View, Image, Pressable } from "react-native";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BAR_HEIGHT = 88;      // Figma dock height
-const ICON_SIZE = 62;       // Figma icon size
+const BAR_HEIGHT = 88; // Figma dock height
+const ICON_SIZE = 62; // Figma icon size
 const ICON_OPACITY_INACTIVE = 0.55;
 
 const icons = {
   home: require("@/assets/ui/home.png"),
   store: require("@/assets/ui/store.png"),
-  task: require("@/assets/ui/task.png"),
+  // NOTE: key must be "tasks" to match the tab route name
+  tasks: require("@/assets/ui/task.png"),
   story: require("@/assets/ui/story.png"),
 };
 
 export default function BottomDock({
-  state, descriptors, navigation,
+  state,
+  descriptors,
+  navigation,
 }: BottomTabBarProps) {
   const inset = useSafeAreaInsets();
 
@@ -22,7 +25,9 @@ export default function BottomDock({
     <View
       style={{
         position: "absolute",
-        left: 0, right: 0, bottom: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         // total height includes safe-area inset
         height: BAR_HEIGHT + inset.bottom,
         paddingBottom: inset.bottom || 12,

@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { SessionTask } from "@/components/TaskModal";
+import { useGame } from "@/src/context/GameContext";
+import SessionCompleteModal from "@/components/SessionCompleteModal";
 
 function formatTime(sec: number) {
   const m = Math.floor(sec / 60);
@@ -17,6 +19,8 @@ export default function SessionScreen() {
     tasks?: string;
   }>();
 
+  const { startSession, endSession } = useGame();
+
   const parsedTasks: SessionTask[] = useMemo(
     () => (tasks ? JSON.parse(tasks as string) : []),
     [tasks]
@@ -26,36 +30,117 @@ export default function SessionScreen() {
     (minutes ? parseInt(minutes as string, 10) : 25) * 60;
 
   const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
-  const intervalRef = useRef<NodeJS.Timer | null>(null);
+  const [sessionId, setSessionId] = useState<number | null>(null);
 
-  // start countdown
+  const [showComplete, setShowComplete] = useState(false);
+  const [coinsEarned, setCoinsEarned] = useState(0);
+  const [expEarned, setExpEarned] = useState(0);
+
+  const intervalRef = useRef<NodeJS.Timer | null>(null);
+  const startedRef = useRef(false);
+  const endedRef = useRef(false);
+
+  // start countdown timer
   useEffect(() => {
     intervalRef.current = setInterval(() => {
       setSecondsLeft((prev) => Math.max(prev - 1, 0));
     }, 1000);
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
   }, []);
 
-  // when timer hits 0, stop it
+  // when timer hits 0, stop and complete the session
   useEffect(() => {
-    if (secondsLeft === 0 && intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-      // TODO: show “session complete” modal / reward coins, etc.
+    if (secondsLeft === 0 && !endedRef.current) {
+      // stop ticking
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      // auto-finish the session and show rewards
+      void finishSessionAndShowRewards(true);
     }
   }, [secondsLeft]);
 
-  const stopTimer = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    router.replace("/(tabs)/home"); // end session → back home
+  // Start backend session once on mount
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+
+    (async () => {
+      try {
+        const firstTaskTitle = parsedTasks[0]?.title ?? null;
+        const active = await startSession(firstTaskTitle, null);
+        if (active) {
+          setSessionId(active.id);
+        }
+      } catch (e) {
+        console.log("Failed to start backend session:", e);
+      }
+    })();
+  }, [parsedTasks, startSession]);
+
+  // Shared helper: end backend session and show rewards (unless cancelled)
+  async function finishSessionAndShowRewards(autoFinished: boolean) {
+    if (endedRef.current) return;
+    endedRef.current = true;
+
+    try {
+      const result = await endSession(sessionId ?? undefined);
+      if (result) {
+        setCoinsEarned(result.reward.currency || 0);
+        setExpEarned(result.reward.petExp || 0);
+
+        // For Cancel path we might skip the modal – handled separately.
+        if (!autoFinished) {
+          setShowComplete(true);
+        } else {
+          // Auto-finish at 0: still show rewards
+          setShowComplete(true);
+        }
+      } else {
+        // If no result, just send them home
+        router.replace("/(tabs)/home");
+      }
+    } catch (e) {
+      console.log("Failed to end session:", e);
+      router.replace("/(tabs)/home");
+    }
+  }
+
+  const handleStop = async () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    await finishSessionAndShowRewards(false);
   };
 
-  const cancelSession = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    router.replace("/(tabs)/home"); // or router.back() if you prefer
+  const handleCancel = async () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    // We still end the session in the backend (so the timer is closed),
+    // but we skip showing the rewards modal.
+    if (!endedRef.current) {
+      endedRef.current = true;
+      try {
+        await endSession(sessionId ?? undefined);
+      } catch (e) {
+        console.log("Failed to end session on Cancel:", e);
+      }
+    }
+    router.replace("/(tabs)/home");
+  };
+
+  const handleCloseModal = () => {
+    setShowComplete(false);
+    router.replace("/(tabs)/home");
   };
 
   return (
@@ -65,26 +150,41 @@ export default function SessionScreen() {
         <Text style={styles.timeText}>{formatTime(secondsLeft)}</Text>
       </View>
 
-      {/* two task bars (just visual for now) */}
+      {/* simple task preview bars (visual only for now) */}
       <View style={styles.tasksWrapper}>
         {parsedTasks.slice(0, 2).map((t) => (
           <View key={t.id} style={styles.taskBar} />
         ))}
       </View>
 
-      {/* pet circle placeholder */}
+      {/* pet circle placeholder (later: show equipped pet sprite) */}
       <View style={styles.petCircle} />
 
       {/* Stop / Cancel bar */}
       <View style={styles.bottomBar}>
-        <Pressable onPress={stopTimer} style={[styles.bottomBtn, styles.stopBtn]}>
+        <Pressable
+          onPress={handleStop}
+          style={[styles.bottomBtn, styles.stopBtn]}
+        >
           <Text style={[styles.bottomText, { color: "#FFFFFF" }]}>Stop</Text>
         </Pressable>
 
-        <Pressable onPress={cancelSession} style={[styles.bottomBtn, styles.cancelBtn]}>
-          <Text style={[styles.bottomText, { color: "#111827" }]}>Cancel</Text>
+        <Pressable
+          onPress={handleCancel}
+          style={[styles.bottomBtn, styles.cancelBtn]}
+        >
+          <Text style={[styles.bottomText, { color: "#111827" }]}>
+            Cancel
+          </Text>
         </Pressable>
       </View>
+
+      <SessionCompleteModal
+        visible={showComplete}
+        coinsEarned={coinsEarned}
+        expEarned={expEarned}
+        onClose={handleCloseModal}
+      />
     </View>
   );
 }

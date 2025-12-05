@@ -1,34 +1,31 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, TextInput, Pressable, FlatList } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-type Task = { id: string; title: string; done: boolean };
+import { useGame } from "@/src/context/GameContext";
 
 export default function Tasks() {
+  const { tasks, addTask, completeTask, refreshTasks } = useGame();
+
   const [text, setText] = useState("");
-  const [tasks, setTasks] = useState<Task[]>([]);
 
-  // load/save to device
+  // refresh tasks from backend when page opens
   useEffect(() => {
-    (async () => {
-      const raw = await AsyncStorage.getItem("tasks");
-      if (raw) setTasks(JSON.parse(raw));
-    })();
+    refreshTasks();
   }, []);
-  useEffect(() => {
-    AsyncStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
 
-  const addTask = () => {
+  const handleAdd = async () => {
     const t = text.trim();
     if (!t) return;
-    setTasks(prev => [{ id: Date.now().toString(), title: t, done: false }, ...prev]);
+    await addTask(t);
     setText("");
   };
-  const toggle = (id: string) =>
-    setTasks(prev => prev.map(t => (t.id === id ? { ...t, done: !t.done } : t)));
-  const remove = (id: string) =>
-    setTasks(prev => prev.filter(t => t.id !== id));
+
+  const handleToggle = async (id: number, currentlyDone: boolean) => {
+    if (!currentlyDone) {
+      // marking task complete
+      await completeTask(id);
+    }
+    // no "undo" yet — backend supports only complete
+  };
 
   return (
     <View style={{ flex: 1, padding: 20, gap: 12, backgroundColor: "#FFFBF2" }}>
@@ -48,11 +45,11 @@ export default function Tasks() {
             borderWidth: 1,
             borderColor: "#e5e7eb",
           }}
-          onSubmitEditing={addTask}
+          onSubmitEditing={handleAdd}
           returnKeyType="done"
         />
         <Pressable
-          onPress={addTask}
+          onPress={handleAdd}
           style={{
             backgroundColor: "#A5B4FC",
             paddingHorizontal: 14,
@@ -66,7 +63,7 @@ export default function Tasks() {
 
       <FlatList
         data={tasks}
-        keyExtractor={(t) => t.id}
+        keyExtractor={(t) => String(t.id)}
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
         renderItem={({ item }) => (
           <View
@@ -81,14 +78,23 @@ export default function Tasks() {
               justifyContent: "space-between",
             }}
           >
-            <Pressable onPress={() => toggle(item.id)} style={{ flex: 1 }}>
-              <Text style={{ textDecorationLine: item.done ? "line-through" : "none" }}>
+            <Pressable onPress={() => handleToggle(item.id, item.completed)} style={{ flex: 1 }}>
+              <Text
+                style={{
+                  textDecorationLine: item.completed ? "line-through" : "none",
+                }}
+              >
                 {item.title}
               </Text>
             </Pressable>
-            <Pressable onPress={() => remove(item.id)}>
-              <Text style={{ color: "#ef4444", fontWeight: "600" }}>Delete</Text>
-            </Pressable>
+            <Text
+              style={{
+                color: item.completed ? "#16a34a" : "#6b7280",
+                fontWeight: "600",
+              }}
+            >
+              {item.completed ? "Done" : "Tap to Complete"}
+            </Text>
           </View>
         )}
         ListEmptyComponent={<Text style={{ color: "#6b7280" }}>No tasks yet.</Text>}

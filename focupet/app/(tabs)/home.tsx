@@ -1,3 +1,4 @@
+// app/(tabs)/home.tsx
 import React, { useRef, useState } from "react";
 import {
   View,
@@ -12,11 +13,16 @@ import TaskModal, { SessionTask } from "@/components/TaskModal";
 import TimerModal from "@/components/TimerModal";
 import { useRouter } from "expo-router";
 import CoinBar from "@/components/CoinBar";
+import { useGame } from "@/src/context/GameContext";
 
 export default function Home() {
   // which popup is showing?
   const [step, setStep] = useState<"none" | "tasks" | "timer">("none");
   const router = useRouter();
+
+  // game state (coins, pet, etc.) from backend
+  const { game } = useGame();
+  const coins = game?.currency ?? 0;
 
   // data collected from the popups
   const [sessionTasks, setSessionTasks] = useState<SessionTask[]>([]);
@@ -69,12 +75,13 @@ export default function Home() {
         </Pressable>
       </View>
 
-    <View style={styles.coinRow}>
-      <CoinBar
-        coins={120} // later this comes from state
-        onPressPlus={() => console.log("Open coin purchase / store")}
-      />
-    </View>
+      {/* coin bar row */}
+      <View style={styles.coinRow}>
+        <CoinBar
+          coins={coins}
+          onPressPlus={() => console.log("Open coin purchase / store")}
+        />
+      </View>
 
       {/* big pet circle placeholder */}
       <View style={styles.petCircle} />
@@ -168,3 +175,5 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
 });
+
+

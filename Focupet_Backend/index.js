@@ -28,7 +28,8 @@ app.use(
 
 // FILE PATHS
 const usersPath = path.join(__dirname, "users.json");
-const gamedataPath = path.join(__dirname, "gamedata.json");
+// IMPORTANT: match the actual filename gameData.json (capital D)
+const gamedataPath = path.join(__dirname, "gameData.json");
 const sessionPath = path.join(__dirname, "session.json");
 const storePath = path.join(__dirname, "store.json");
 const rewardsPath = path.join(__dirname, "rewards.json");
@@ -38,7 +39,6 @@ let tasks = await loadJSON(tasksPath, []);
 
 const systemTasksPath = path.join(__dirname, "system_tasks.json");
 let systemTasks = await loadJSON(systemTasksPath, []);
-
 
 // LOAD FILE HELPERS
 async function loadJSON(path, fallback = []) {
@@ -147,7 +147,7 @@ async function applyRewardToUser(userId, durationSeconds, sessionRecord) {
         exp: 0,
         growthStage: "baby",
         mood: "neutral",
-        lastActiveAt: new Date().toISOString()
+        lastActiveAt: new Date().toISOString(),
       };
     }
 
@@ -258,7 +258,7 @@ async function applyRewardToUser(userId, durationSeconds, sessionRecord) {
     if (sessionRecord) {
       userGame.sessions.push({
         ...sessionRecord,
-        reward: reward.currency
+        reward: reward.currency,
       });
     }
 
@@ -280,11 +280,9 @@ async function applyRewardToUser(userId, durationSeconds, sessionRecord) {
     moodChanged,
     oldMood,
     newMood,
-    storyProgress: userGame.storyProgress
+    storyProgress: userGame ? userGame.storyProgress : 0,
   };
 }
-
-
 
 // ROUTES
 app.get("/api/health", (_req, res) => {
@@ -336,7 +334,6 @@ app.get("/api/gamedata", auth, (req, res) => {
   res.json({ ok: true, gamedata: userGame });
 });
 
-
 // --------------------------
 // SESSION SYSTEM
 // --------------------------
@@ -364,7 +361,6 @@ app.post("/api/session/start", auth, async (req, res) => {
 
   res.json({ ok: true, session: newSession });
 });
-
 
 // END SESSION
 app.post("/api/session/end", auth, async (req, res) => {
@@ -398,18 +394,14 @@ app.post("/api/session/end", auth, async (req, res) => {
   await saveJSON(sessionPath, sessions);
 
   // Call reward system (ONLY ONCE)
-  const result = await applyRewardToUser(
-    userId,
-    duration,
-    {
-      id: session.id,
-      task: session.task,
-      taskId: session.taskId,
-      startTime: session.startTime,
-      endTime: session.endTime,
-      duration: session.duration
-    }
-  );
+  const result = await applyRewardToUser(userId, duration, {
+    id: session.id,
+    task: session.task,
+    taskId: session.taskId,
+    startTime: session.startTime,
+    endTime: session.endTime,
+    duration: session.duration,
+  });
 
   // unpack all fields needed by SSDD
   const {
@@ -421,7 +413,7 @@ app.post("/api/session/end", auth, async (req, res) => {
     moodChanged,
     oldMood,
     newMood,
-    storyProgress
+    storyProgress,
   } = result;
 
   session.reward = reward.currency;
@@ -429,7 +421,7 @@ app.post("/api/session/end", auth, async (req, res) => {
   // Auto-complete task if session has taskId
   if (session.taskId) {
     const linkedTask = tasks.find(
-      t => t.id === session.taskId && t.userId === userId
+      (t) => t.id === session.taskId && t.userId === userId
     );
 
     if (linkedTask && !linkedTask.completed) {
@@ -463,22 +455,20 @@ app.post("/api/session/end", auth, async (req, res) => {
     newMood,
 
     // Story progression
-    storyProgress: storyProgress || 0
+    storyProgress: storyProgress || 0,
   });
 });
-
 
 // GET SESSIONS for current authenticated user (SSDD required)
 app.get("/api/sessions/me", auth, (req, res) => {
   const uid = req.user.id;
-  const userSessions = sessions.filter(s => s.userId === uid);
+  const userSessions = sessions.filter((s) => s.userId === uid);
 
   res.json({
     ok: true,
-    sessions: userSessions
+    sessions: userSessions,
   });
 });
-
 
 // GET USER SESSIONS (admin/debug)
 app.get("/api/session/:userId", auth, (req, res) => {
@@ -507,37 +497,15 @@ app.post("/api/reward/apply", auth, async (req, res) => {
     null
   );
 
-// ------- STORY UNLOCK (Placeholder) -------
-//if (systemStories && Array.isArray(systemStories)) {
-//  const progress = userGame.storyProgress || 0;
-  // Ensure user stories exist
-  //if (!Array.isArray(userGame.stories)) {
-  //  userGame.stories = systemStories.map(s => ({
-  //    id: s.id,
-//      unlocked: s.threshold === 0
-  //  }));
-//  }
-
-// systemStories.forEach(story => {
-//   if (progress >= story.threshold) {
-//     const entry = userGame.stories.find(s => s.id === story.id);
-//     if (entry && !entry.unlocked) {
-//       entry.unlocked = true;
-//      }
-//   }
-//  });
-
-  //await saveGameData();
-//}
-
+  // ------- STORY UNLOCK (Placeholder) -------
+  // (commented out for now – can be enabled later with proper systemStories)
   res.json({
-   ok: true,
+    ok: true,
     reward,
     newCurrency: userGame ? userGame.currency : null,
     pet: userGame ? userGame.pet : null,
   });
 });
-
 
 //
 // --------------------------
@@ -712,14 +680,14 @@ app.get("/api/pet/status", auth, (req, res) => {
     pet: userGame.pet,
     equipped: userGame.equipped || {},
     currency: userGame.currency || 0,
-    stories: userGame.stories || []
+    stories: userGame.stories || [],
   });
 });
 
-// Unified Game State 
+// Unified Game State
 app.get("/api/game/state", auth, (req, res) => {
   const userId = req.user.id;
-  const userGame = gamedata.find(g => g.userId === userId);
+  const userGame = gamedata.find((g) => g.userId === userId);
 
   if (!userGame) {
     return res.status(404).json({ ok: false, message: "No gamedata found" });
@@ -728,7 +696,7 @@ app.get("/api/game/state", auth, (req, res) => {
   // Filter store items for this pet
   const petType = userGame.pet?.type;
   const availableStoreItems = storeData.filter(
-    item => item.petType === petType
+    (item) => item.petType === petType
   );
 
   res.json({
@@ -739,7 +707,7 @@ app.get("/api/game/state", auth, (req, res) => {
     inventory: userGame.inventory || [],
     storyProgress: userGame.storyProgress || 0,
     stories: userGame.stories || [],
-    store: availableStoreItems
+    store: availableStoreItems,
   });
 });
 
@@ -751,18 +719,18 @@ app.get("/api/game/state", auth, (req, res) => {
 app.get("/api/tasks/suggest", auth, (req, res) => {
   res.json({
     ok: true,
-    tasks: systemTasks
+    tasks: systemTasks,
   });
 });
 
 // Get User's Personal Tasks
 app.get("/api/tasks/me", auth, (req, res) => {
   const uid = req.user.id;
-  const userTasks = tasks.filter(t => t.userId === uid);
+  const userTasks = tasks.filter((t) => t.userId === uid);
 
   res.json({
     ok: true,
-    tasks: userTasks
+    tasks: userTasks,
   });
 });
 
@@ -782,7 +750,7 @@ app.post("/api/tasks/add", auth, async (req, res) => {
     due,
     reward,
     completed: false,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   };
 
   tasks.push(newTask);
@@ -791,13 +759,12 @@ app.post("/api/tasks/add", auth, async (req, res) => {
   res.json({ ok: true, task: newTask });
 });
 
-
 // Complete a task manually
 app.post("/api/tasks/complete", auth, async (req, res) => {
   const uid = req.user.id;
   const { taskId } = req.body;
 
-  const task = tasks.find(t => t.id === taskId && t.userId === uid);
+  const task = tasks.find((t) => t.id === taskId && t.userId === uid);
 
   if (!task) {
     return res.status(404).json({ ok: false, message: "Task not found" });
@@ -811,7 +778,7 @@ app.post("/api/tasks/complete", auth, async (req, res) => {
   task.completedAt = new Date().toISOString();
 
   // Add task reward to gamedata
-  const userGame = gamedata.find(g => g.userId === uid);
+  const userGame = gamedata.find((g) => g.userId === uid);
   if (userGame) {
     userGame.currency = (userGame.currency || 0) + (task.reward || 0);
     await saveGameData();
@@ -819,7 +786,11 @@ app.post("/api/tasks/complete", auth, async (req, res) => {
 
   await saveJSON(tasksPath, tasks);
 
-  res.json({ ok: true, task, newCurrency: userGame ? userGame.currency : null });
+  res.json({
+    ok: true,
+    task,
+    newCurrency: userGame ? userGame.currency : null,
+  });
 });
 
 app.listen(PORT, () => {
