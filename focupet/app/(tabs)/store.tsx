@@ -72,10 +72,12 @@ export default function StoreScreen() {
         />
       </View>
 
-      {/* Pet circle */}
-      <View style={styles.petCircleWrapper}>
-        <View style={styles.petCircle} />
-      </View>
+        {/* CAT */}
+          <Image
+            source={require("@/assets/pets/cat1.png")}
+            style={styles.petImage}
+            resizeMode="contain"
+          />
 
       {/* Light green separator */}
       <View style={styles.separator} />
@@ -156,16 +158,11 @@ const styles = StyleSheet.create({
     height: "100%",
     resizeMode: "contain",
   },
-  petCircleWrapper: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  petCircle: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: "#DFE1E4",
-  },
+    petImage: {
+      width: 350,
+      height: 420,
+      marginTop: -50,
+    },
   separator: {
     height: 24,
     backgroundColor: "#E7F1A7", // soft green bar

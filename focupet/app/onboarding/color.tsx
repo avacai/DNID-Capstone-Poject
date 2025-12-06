@@ -1,13 +1,25 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
+import type { PetType } from "./quizConfig";
 
 const COLORS = ["#F6AFC9", "#B5C5FF", "#E6C8FF"];
 
 export default function ColorScreen() {
   const router = useRouter();
+  const { pet } = useLocalSearchParams<{ pet: PetType }>(); // 👈 get pet from quiz
   const [selected, setSelected] = useState<number | null>(null);
 
+  const handleHatch = () => {
+    if (selected === null) return;
+
+    const color = COLORS[selected];
+
+    router.push({
+      pathname: "/onboarding/name",
+      params: { pet, color }, // pass both along
+    });
+  };
   return (
     <View style={styles.container}>
       <Text style={styles.question}>What color is your pet?</Text>

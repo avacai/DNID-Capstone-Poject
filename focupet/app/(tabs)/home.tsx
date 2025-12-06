@@ -41,7 +41,7 @@ export default function Home() {
 
     // navigate to full session screen
     router.push({
-      pathname: "/session",
+      pathname: "/session/index",
       params: {
         minutes: String(minutes),
         tasks: JSON.stringify(sessionTasks),
@@ -84,13 +84,11 @@ export default function Home() {
         </View>
 
         {/* PET CIRCLE + CAT */}
-        <View style={styles.petCircle}>
           <Image
             source={require("@/assets/pets/cat1.png")}
             style={styles.petImage}
             resizeMode="contain"
           />
-        </View>
 
         {/* Start button */}
         <View style={styles.startWrapper}>
@@ -151,7 +149,6 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    backgroundColor: "rgba(255, 253, 245, 0.8)", // soft overlay so UI pops on bg
     alignItems: "center",
     paddingTop: 60,
   },
@@ -171,25 +168,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  petCircle: {
-    marginTop: 60,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: "rgba(223, 225, 228, 0.95)",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  petImage: {
-    width: "80%",
-    height: "95%",
-    marginBottom: -10, // makes paws sit on the “floor” line
-  },
+
+    petImage: {
+      width: 350,
+      height: 420,
+      marginTop: 30,
+    },
+
 
   startWrapper: {
     marginTop: 60,

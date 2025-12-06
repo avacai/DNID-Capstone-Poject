@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5050;
 
 app.use((req, _res, next) => {
   console.log("request received:", req.method, req.url);
@@ -34,10 +34,7 @@ const storePath = path.join(__dirname, "store.json");
 const rewardsPath = path.join(__dirname, "rewards.json");
 
 const tasksPath = path.join(__dirname, "tasks.json");
-let tasks = loadJSON(tasksPath, []);
-
 const systemTasksPath = path.join(__dirname, "system_tasks.json");
-let systemTasks = loadJSON(systemTasksPath, []);
 
 
 // LOAD FILE HELPERS
@@ -64,6 +61,8 @@ let rewardConfig = await loadJSON(rewardsPath, {
   petExpPer5Min: 0,
 });
 
+let tasks = await loadJSON(tasksPath, []);
+let systemTasks = await loadJSON(systemTasksPath, []);
 // SAVE GAMEDATA HELPER
 async function saveGameData() {
   await saveJSON(gamedataPath, gamedata);

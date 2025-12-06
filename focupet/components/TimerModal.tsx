@@ -1,6 +1,5 @@
-// components/TimerModal.tsx
-import React, { useState } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import React, { useRef, useState } from "react";
+import { View, Text, Pressable, StyleSheet, Image, Animated} from "react-native";
 
 type Props = {
   initialMinutes?: number;
@@ -17,6 +16,14 @@ export default function TimerModal({
 
   const inc = () => setMinutes((m) => Math.min(180, m + 5));
   const dec = () => setMinutes((m) => Math.max(5, m - 5));
+  const startScale = useRef(new Animated.Value(1)).current;
+  const backScale = useRef(new Animated.Value(1)).current;
+
+  const pressIn = (anim: Animated.Value) =>
+    Animated.spring(anim, { toValue: 0.94, useNativeDriver: true }).start();
+
+  const pressOut = (anim: Animated.Value) =>
+    Animated.spring(anim, { toValue: 1, useNativeDriver: true }).start();
 
   return (
     <View style={styles.overlay}>
@@ -40,16 +47,31 @@ export default function TimerModal({
           </Pressable>
         </View>
 
-        <View style={styles.bottomButtons}>
-          <Pressable
-            onPress={() => onStart(minutes)}
-            style={[styles.longBtn, { marginBottom: 10 }]}
+        <View style={styles.buttonRow}>
+         <Pressable
+            onPressIn={() => pressIn(backScale)}
+            onPressOut={() => pressOut(backScale)}
+            onPress={onBack}
           >
-            <Text style={styles.longLabel}>Start</Text>
+            <Animated.Image
+              source={require("@/assets/ui/button_back.png")}
+              style={[styles.backButton, { transform: [{ scale: backScale }] }]}
+              resizeMode="contain"
+            />
           </Pressable>
-          <Pressable onPress={onBack} style={styles.longBtn}>
-            <Text style={styles.longLabel}>Back</Text>
+
+         <Pressable
+            onPressIn={() => pressIn(startScale)}
+            onPressOut={() => pressOut(startScale)}
+            onPress={() => onStart(minutes)}
+          >
+            <Animated.Image
+              source={require("@/assets/ui/button_start.png")}
+              style={[styles.startButton, { transform: [{ scale: startScale }] }]}
+              resizeMode="contain"
+            />
           </Pressable>
+
         </View>
       </View>
     </View>
@@ -108,9 +130,24 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "900",
   },
-  bottomButtons: {
-    marginTop: 4,
-  },
+    buttonRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: 25,
+      width: "100%",
+      alignSelf: "center",
+    },
+
+    startButton: {
+      width: 160,
+      height: 70,
+    },
+
+    backButton: {
+      width: 160,
+      height: 70,
+    },
+
   longBtn: {
     backgroundColor: "#A0B1F3",
     paddingVertical: 12,

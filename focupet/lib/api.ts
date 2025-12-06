@@ -5,25 +5,25 @@ import { Platform } from "react-native";
 // ---------------------------------------------
 export const BASE_URL =
 Platform.OS === "android"
-? "http://10.0.2.2:5000" // Android emulator → localhost
-: "http://localhost:5000"; // iOS simulator / web
+? "http://10.0.2.2:5050"   // ✅ new port
+: "http://localhost:5050"; // ✅ new port
 
 // ---------------------------------------------
 // AUTH TOKEN
 // ---------------------------------------------
-let AUTH_TOKEN: string | null = null;
+let AUTH_TOKEN = null;
 
-export function setAuthToken(token: string | null) {
+export function setAuthToken(token) {
   AUTH_TOKEN = token;
 }
 
 // ---------------------------------------------
 // INTERNAL REQUEST WRAPPER
 // ---------------------------------------------
-async function request(path: string, options: RequestInit = {}) {
-  const headers: Record<string, string> = {
+async function request(path, options = {}) {
+  const headers = {
     "Content-Type": "application/json",
-    ...(options.headers as any),
+    ...(options.headers || {}),
   };
 
   if (AUTH_TOKEN) {
@@ -35,14 +35,22 @@ async function request(path: string, options: RequestInit = {}) {
     headers,
   });
 
+  // Try to read raw text first so we can debug better
+  let text = "";
+  try {
+    text = await response.text();
+  } catch (_) {}
+
   let data = {};
   try {
-    data = await response.json();
-  } catch {}
+    data = text ? JSON.parse(text) : {};
+  } catch (_) {
+    data = { raw: text };
+  }
 
   if (!response.ok) {
-    console.log("❌ API Error:", path, data);
-    throw new Error((data as any)?.message || "API request failed");
+    console.log("❌ API Error:", path, response.status, data);
+    throw new Error((data && data.message) || "API request failed");
   }
 
   return data;
@@ -58,7 +66,7 @@ export const api = {
   // -----------------------
   // AUTH
   // -----------------------
-  login: (email: string, password: string) =>
+  login: (email, password) =>
     request("/api/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
@@ -85,17 +93,16 @@ export const api = {
   // -----------------------
   // STORE
   // -----------------------
-
-  getStoreList: (userId: number) =>
+  getStoreList: (userId) =>
     request(`/api/store/list?userId=${userId}`),
 
-  purchaseItem: (userId: number, itemId: number | string) =>
+  purchaseItem: (userId, itemId) =>
     request("/api/purchase", {
       method: "POST",
       body: JSON.stringify({ userId, itemId }),
     }),
 
-  equipItem: (userId: number, itemId: number | string) =>
+  equipItem: (userId, itemId) =>
     request("/api/equip", {
       method: "POST",
       body: JSON.stringify({ userId, itemId }),
@@ -106,14 +113,13 @@ export const api = {
   // -----------------------
   // SESSION SYSTEM
   // -----------------------
-
-  sessionStart: (taskId?: number, task?: string) =>
+  sessionStart: (taskId, task) =>
     request("/api/session/start", {
       method: "POST",
       body: JSON.stringify({ taskId, task }),
     }),
 
-  sessionEnd: (sessionId: number) =>
+  sessionEnd: (sessionId) =>
     request("/api/session/end", {
       method: "POST",
       body: JSON.stringify({ sessionId }),
@@ -121,10 +127,10 @@ export const api = {
 
   sessionsMe: () => request("/api/sessions/me"),
 
-  sessionsByUserId: (userId: number) => request(`/api/session/${userId}`),
+  sessionsByUserId: (userId) => request(`/api/session/${userId}`),
 
   // Manual reward (rarely needed)
-  applyReward: (durationSeconds: number) =>
+  applyReward: (durationSeconds) =>
     request("/api/reward/apply", {
       method: "POST",
       body: JSON.stringify({ duration: durationSeconds }),
@@ -140,53 +146,15 @@ export const api = {
   // User personal tasks
   myTasks: () => request("/api/tasks/me"),
 
-  addTask: (title: string, reward = 0, due = null) =>
+  addTask: (title, reward = 0, due = null) =>
     request("/api/tasks/add", {
       method: "POST",
       body: JSON.stringify({ title, reward, due }),
     }),
 
-  completeTask: (taskId: string | number) =>
+  completeTask: (taskId) =>
     request("/api/tasks/complete", {
       method: "POST",
       body: JSON.stringify({ taskId }),
     }),
-};
-
-// ---------------------------------------------
-// OPTIONAL TYPES (use if you want)
-// ---------------------------------------------
-export type User = {
-  id: number;
-  email: string;
-  name?: string;
-};
-
-export type GameState = {
-  pet: {
-    type: string;
-    exp: number;
-    growthStage: string;
-    mood: string;
-  };
-  currency: number;
-  equipped: Record<string, number | null>;
-  inventory: any[];
-  storyProgress: number;
-  store: any[];
-};
-
-export type StoreItem = {
-  id: number;
-  name: string;
-  category: string;
-  petType: string;
-  price: number;
-};
-
-export type Task = {
-  id: string | number;
-  title: string;
-  reward: number;
-  completed: boolean;
 };

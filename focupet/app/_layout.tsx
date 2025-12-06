@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import { View } from "react-native";
 
 export const unstable_settings = {
-  initialRouteName: "onboarding"   // 👈 correct!
+  initialRouteName: "onboarding"
 };
 
 export default function RootLayout() {
@@ -14,7 +14,7 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: "#FFFDF5" },
         }}
       >
-        <Stack.Screen name="onboarding" />   {/* 👈 loads onboarding flow first */}
+        <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="session" />
       </Stack>

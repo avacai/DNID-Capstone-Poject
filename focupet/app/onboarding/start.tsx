@@ -17,13 +17,13 @@ export default function StartScreen() {
         <View style={styles.buttons}>
           <ImageButton
             label="Sign Up"
-            onPress={() => router.push("/onboarding/question1")}
+            onPress={() => router.push("/onboarding/quiz")}
             style={{ marginBottom: 12 }}
           />
 
           <ImageButton
             label="Login"
-            onPress={() => router.push("/onboarding/question1")}
+            onPress={() => router.push("/onboarding/login")}
           />
         </View>
     </View>
