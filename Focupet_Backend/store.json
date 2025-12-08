@@ -1,5 +1,13 @@
 [
   {
+    "id": "star_wand",
+    "name": "Star Wand",
+    "petType": "All",
+    "category": "toy",
+    "price": 300,
+    "type": "accessory"
+  },
+  {
     "id": "milk_bowl",
     "name": "Milk Bowl",
     "petType": "Cat",

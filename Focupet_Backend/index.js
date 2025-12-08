@@ -295,7 +295,6 @@ async function applyRewardToUser(userId, durationSeconds, sessionRecord) {
 
     // Update last active time
     userGame.pet.lastActiveAt = new Date().toISOString();
-
     //
     // -----------------------------
     // C) STORY PROGRESS ACCUMULATION
@@ -627,7 +626,12 @@ app.get("/api/store/list", (req, res) => {
   }
 
   const petType = user.pet.type;
-  const availableItems = storeData.filter((item) => item.petType === petType);
+
+  // NEW CODE: Allow specific pet items OR "All" items
+  const availableItems = storeData.filter((item) =>
+    item.petType === petType || item.petType === "All"
+  );
+
 
   res.json({
     ok: true,
