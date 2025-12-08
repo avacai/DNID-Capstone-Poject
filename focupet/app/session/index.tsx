@@ -232,10 +232,16 @@ export default function SessionScreen() {
         <FloatingParticle delay={4000} color={COLORS.primary} size={120} startX={width / 2} />
       </View>
 
-      {/* Big Time Pill */}
-      <View style={styles.timePill}>
+      {/* Big Time Pill - Click to pause */}
+      <Pressable
+        onPress={pauseTimer}
+        style={({ pressed }) => [
+          styles.timePill,
+          pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
+        ]}
+      >
         <Text style={styles.timeText}>{formatTime(secondsLeft)}</Text>
-      </View>
+      </Pressable>
 
       {/* Task Bars */}
       <View style={styles.tasksWrapper}>
@@ -246,19 +252,19 @@ export default function SessionScreen() {
         ))}
       </View>
 
-      {/* Pet Placeholder (Replaced Grey Circle) */}
+      {/* Pet Placeholder */}
       <Animated.View style={[styles.petContainer, { transform: [{ scale: breathAnim }] }]}>
         <Image source={petSource} style={styles.petImage} resizeMode="contain" />
       </Animated.View>
 
-      {/* Stop / Cancel bar */}
+      {/* Stop / Cancel Buttons (Now separated!) */}
       <View style={styles.bottomBar}>
         <Pressable
           onPress={pauseTimer}
           style={({pressed}) => [
             styles.bottomBtn,
             styles.stopBtn,
-            pressed && { opacity: 0.9 }
+            pressed && { transform: [{ scale: 0.96 }] }
           ]}
         >
           <Text style={[styles.bottomText, { color: "#FFFFFF" }]}>Stop</Text>
@@ -269,7 +275,7 @@ export default function SessionScreen() {
           style={({pressed}) => [
             styles.bottomBtn,
             styles.cancelBtn,
-            pressed && { opacity: 0.9 }
+            pressed && { transform: [{ scale: 0.96 }] }
           ]}
         >
           <Text style={[styles.bottomText, { color: COLORS.text }]}>Cancel</Text>
@@ -324,10 +330,11 @@ export default function SessionScreen() {
 
             <Image source={petSource} style={styles.popupPet} resizeMode="contain" />
 
-            <View style={styles.singleBtnRow}>
+            {/* Changed from full-width to centered button */}
+            <View style={styles.centeredBtnRow}>
               <Pressable
                 onPress={handleGiveUpOk}
-                style={[styles.popupBtn, styles.popupBackBtn]}
+                style={[styles.popupBtn, styles.popupBackBtn, styles.okButtonWidth]}
               >
                 <Text style={styles.popupBackText}>Ok</Text>
               </Pressable>
@@ -469,7 +476,6 @@ const styles = StyleSheet.create({
     width: 240,
     height: 240,
     borderRadius: 120,
-    // backgroundColor: '#FFF', // Optional: Circle behind pet
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 60,
@@ -478,23 +484,24 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
   },
-  // Bottom Bar
+  // Bottom Bar (SEPARATED BUTTONS)
   bottomBar: {
     flexDirection: "row",
     width: "85%",
+    justifyContent: 'space-between', // Adds gap between buttons
+    alignItems: 'center',
+  },
+  bottomBtn: {
+    width: '47%', // Slightly less than half to create spacing
     height: 56,
-    borderRadius: 28,
-    overflow: "hidden",
+    borderRadius: 28, // Individual rounding
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 5,
-  },
-  bottomBtn: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
   },
   stopBtn: {
     backgroundColor: COLORS.stopBtn,
@@ -555,9 +562,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
     gap: 12,
   },
-  singleBtnRow: {
+  // Centered single button for "Ok"
+  centeredBtnRow: {
     width: "100%",
     marginTop: 10,
+    alignItems: 'center',
+  },
+  okButtonWidth: {
+    width: 140, // Fixed width so it looks like a button, not a bar
+    flex: 0,    // Disable flex:1 expansion
   },
   popupBtn: {
     flex: 1,
