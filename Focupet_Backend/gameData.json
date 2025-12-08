@@ -2,10 +2,11 @@
   {
     "userId": 1,
     "pet": {
-      "type": "Cat",
+      "type": "Seal",
       "exp": 0,
       "growthStage": "baby",
-      "mood": "happy"
+      "mood": "neutral",
+      "lastActiveAt": "2025-12-08T04:49:45.394Z"
     },
     "currency": 150,
     "sessions": [
@@ -50,7 +51,6 @@
       "tail": null
     }
   },
-
   {
     "userId": 2,
     "pet": {
@@ -95,7 +95,6 @@
       "tail": null
     }
   },
-
   {
     "userId": 3,
     "pet": {

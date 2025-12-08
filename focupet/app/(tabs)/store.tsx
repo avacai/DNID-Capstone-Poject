@@ -11,7 +11,14 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import CoinBar from "@/components/CoinBar";
+import { useOnboarding, PetType } from "@/hooks/useOnboarding";
 
+const PET_IMAGES: Record<PetType, any> = {
+  Cat: require("@/assets/pets/cat_1.png"),
+  Dog: require("@/assets/pets/dog_1.png"),
+  Duck: require("@/assets/pets/duck_1.png"),
+  Seal: require("@/assets/pets/seal_1.png"),
+};
 type StoreItem = {
   id: string;
 };
@@ -30,6 +37,11 @@ const CARD_WIDTH =
 
 export default function StoreScreen() {
   const router = useRouter();
+
+  const { petType } = useOnboarding();
+  const fallback: PetType = petType ?? "Cat";
+  const petSource = PET_IMAGES[fallback];
+
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [pendingItem, setPendingItem] = useState<StoreItem | null>(null);
 
@@ -72,15 +84,16 @@ export default function StoreScreen() {
         />
       </View>
 
-        {/* CAT */}
-          <Image
-            source={require("@/assets/pets/cat1.png")}
-            style={styles.petImage}
-            resizeMode="contain"
-          />
+    {/* Centered pet + separator */}
+    <View style={styles.centerArea}>
+      <Image
+        source={petSource}
+        style={styles.petImage}
+        resizeMode="contain"
+      />
 
-      {/* Light green separator */}
       <View style={styles.separator} />
+    </View>
     </>
   );
 
@@ -158,16 +171,28 @@ const styles = StyleSheet.create({
     height: "100%",
     resizeMode: "contain",
   },
-    petImage: {
-      width: 350,
-      height: 420,
-      marginTop: -50,
-    },
-  separator: {
-    height: 24,
-    backgroundColor: "#E7F1A7", // soft green bar
-    marginBottom: 24,
-  },
+centerArea: {
+  width: "100%",
+  alignItems: "center",
+  justifyContent: "center",
+  marginTop: 30,
+  marginBottom: 50,   // pushes pet/grid up above bottom nav
+},
+
+petImage: {
+  width: 240,
+  height: 240,
+  resizeMode: "contain",
+  marginBottom: 10,
+},
+
+separator: {
+  width: "70%",
+  height: 12,
+  backgroundColor: "#DDEB8C", // soft green bar
+  borderRadius: 8,
+  marginBottom: 20,
+},
   columnWrapper: {
     justifyContent: "space-between",
     marginBottom: CARD_GAP,

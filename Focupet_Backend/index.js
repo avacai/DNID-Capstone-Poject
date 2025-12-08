@@ -92,6 +92,71 @@ function auth(req, res, next) {
   next();
 }
 
+// INIT PET (called after onboarding quiz)
+app.post("/api/pet/init", auth, async (req, res) => {
+  const { petType } = req.body;
+  const userId = req.user.id;
+
+  if (!petType) {
+    return res.status(400).json({ ok: false, message: "petType is required" });
+  }
+
+  // load pets.json
+  const petsList = JSON.parse(
+    await fs.readFile(path.join(__dirname, "pets.json"), "utf-8")
+  );
+
+  const petConfig = petsList.find(p => p.type === petType);
+  if (!petConfig) {
+    return res.status(400).json({ ok: false, message: "Invalid pet type" });
+  }
+
+  // find or create gamedata
+  let userGame = gamedata.find(g => g.userId === userId);
+
+  if (!userGame) {
+    userGame = {
+      userId,
+      currency: 0,
+      inventory: [],
+      equipped: {
+        head: null,
+        body: null,
+        tail: null,
+        face: null,
+        neck: null,
+        shoes: null,
+        bowl: null,
+        toy: null
+      },
+      sessions: [],
+      storyProgress: 0,
+      stories: [],
+      tasks: [],
+      pet: null
+    };
+    gamedata.push(userGame);
+  }
+
+  // Set the pet
+  userGame.pet = {
+    type: petType,
+    exp: 0,
+    growthStage: "baby",
+    mood: "neutral",
+    lastActiveAt: new Date().toISOString()
+  };
+
+  // save to gamedata.json
+  await saveGameData();
+
+  res.json({
+    ok: true,
+    message: "Pet initialized successfully",
+    pet: userGame.pet
+  });
+});
+
 // REWARD HELPERS
 function computeReward(durationSeconds) {
   const blocks = Math.floor(durationSeconds / 300); // 每 5 分钟一个区块

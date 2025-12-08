@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import type { PetType } from "./quizConfig";
+import type { PetType } from "../../lib/quizConfig";
+import { useOnboarding } from "../../hooks/useOnboarding";
 
 const COLORS = ["#F6AFC9", "#B5C5FF", "#E6C8FF"];
 

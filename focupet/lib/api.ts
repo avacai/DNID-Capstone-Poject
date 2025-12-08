@@ -86,6 +86,15 @@ export const api = {
   gameState: () => request("/api/game/state"),
 
   // -----------------------
+  // PET INIT
+  // -----------------------
+  petInit: (petType: string) =>
+    request("/api/pet/init", {
+      method: "POST",
+      body: JSON.stringify({ petType }),
+    }),
+
+  // -----------------------
   // PET STATUS
   // -----------------------
   petStatus: () => request("/api/pet/status"),
