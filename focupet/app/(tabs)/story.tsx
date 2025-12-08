@@ -10,23 +10,32 @@ import {
   Easing,
   StatusBar,
   ScrollView,
+  Image,
 } from "react-native";
-import { BlurView } from 'expo-blur'; // Optional: Use if you have expo-blur installed
+import { useOnboarding, PetType } from "@/hooks/useOnboarding";
 
 const { width, height } = Dimensions.get("window");
 
 // --- 1. Shared Color Palette ---
 const COLORS = {
   bg: '#FFFFFF',
-  text: '#3D4C79',       // Dark Navy (Primary text)
-  boardBg: '#3D4C79',    // Dark Navy (Board background)
-  cardUnlocked: '#F2E1AC', // Sand/Cream (Unlocked story)
-  cardLocked: '#9EB7E5',   // Periwinkle (Locked story)
-  tag: '#E8F0B8',          // Pale Lime (Tags)
-  modalBg: '#FFFFFF',
+  text: '#3D4C79',       // Dark Navy
+  boardBg: '#3D4C79',    // Navy Board
+  cardUnlocked: '#F2E1AC', // Sand
+  cardLocked: '#9EB7E5',   // Periwinkle
+  tag: '#E8F0B8',          // Pale Lime
+  white: '#FFFFFF',
 };
 
-// --- 2. Animations ---
+// --- 2. Assets ---
+const PET_IMAGES: Record<PetType, any> = {
+  Cat: require("@/assets/pets/cat_1.png"),
+  Dog: require("@/assets/pets/dog_1.png"),
+  Duck: require("@/assets/pets/duck_1.png"),
+  Seal: require("@/assets/pets/seal_1.png"),
+};
+
+// --- 3. Animation Components ---
 
 // Background Floating Particles
 const FloatingParticle = ({ delay, color, size, startX }: { delay: number; color: string; size: number; startX: number }) => {
@@ -75,16 +84,38 @@ const FloatingParticle = ({ delay, color, size, startX }: { delay: number; color
   );
 };
 
-// Animated Story Card (Tilt + Float)
+// Peeking Pet Component
+const PeekingPet = ({ source }: { source: any }) => {
+  const peekAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Make the pet peek up and down slowly
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(peekAnim, { toValue: -10, duration: 2000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(peekAnim, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <Animated.View style={[styles.peekingContainer, { transform: [{ translateY: peekAnim }] }]}>
+      <Image source={source} style={styles.peekingImage} resizeMode="contain" />
+    </Animated.View>
+  );
+};
+
+// Animated Story Card (Tilt + Shake on Lock)
 const StoryCard = ({ story, index, onPress }: { story: any; index: number; onPress: () => void }) => {
   const floatAnim = useRef(new Animated.Value(0)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current; // New shake value
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
           toValue: 1,
-          duration: 3000 + (index * 500), // Stagger animations
+          duration: 3000 + (index * 500),
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
@@ -98,26 +129,40 @@ const StoryCard = ({ story, index, onPress }: { story: any; index: number; onPre
     ).start();
   }, []);
 
+  const handlePress = () => {
+    if (story.unlocked) {
+      onPress();
+    } else {
+      // Trigger Shake Animation for Locked Items
+      Animated.sequence([
+        Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+      ]).start();
+    }
+  };
+
   const translateY = floatAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, -8], // Subtle float up and down
+    outputRange: [0, -6],
   });
 
-  // Rotate slightly based on index
-  const rotate = `${(index % 2 === 0 ? 1 : -1) * 2}deg`;
+  const rotate = `${(index % 2 === 0 ? 1 : -1) * 1.5}deg`;
 
   return (
-    <Pressable
-      disabled={!story.unlocked}
-      onPress={onPress}
-    >
+    <Pressable onPress={handlePress}>
       <Animated.View
         style={[
           styles.storyCard,
           !story.unlocked ? styles.storyCardLocked : styles.storyCardUnlocked,
           {
-            transform: [{ translateY }, { rotate }],
-            opacity: story.unlocked ? 1 : 0.6
+            transform: [
+              { translateY },
+              { rotate },
+              { translateX: shakeAnim } // Shake effect
+            ],
+            opacity: story.unlocked ? 1 : 0.8
           }
         ]}
       >
@@ -125,13 +170,12 @@ const StoryCard = ({ story, index, onPress }: { story: any; index: number; onPre
           styles.cardText,
           !story.unlocked && styles.cardTextLocked
         ]}>
-          {story.unlocked ? story.title : "Locked Story"}
+          {story.unlocked ? story.title : "Locked Memory"}
         </Text>
 
-        {/* Lock Icon Placeholder if locked */}
         {!story.unlocked && (
           <View style={styles.lockIcon}>
-            <Text style={{fontSize: 20}}>🔒</Text>
+            <Text style={{fontSize: 18}}>🔒</Text>
           </View>
         )}
       </Animated.View>
@@ -139,20 +183,20 @@ const StoryCard = ({ story, index, onPress }: { story: any; index: number; onPre
   );
 };
 
-// --- 3. Main Component ---
+// --- 4. Main Component ---
 
 // Mock Stories
 const STORIES = [
   {
     id: 1,
     title: "Morning Light",
-    body: "Your FocuPet wakes up and explores the study room. The sun filters through the dusty window, illuminating floating dust motes that look like tiny stars...",
+    body: "Your FocuPet wakes up and explores the study room. The sun filters through the dusty window, illuminating floating dust motes that look like tiny stars. It seems ready to start a productive day!",
     unlocked: true,
   },
   {
     id: 2,
     title: "First Focus Session",
-    body: "Today your FocuPet watched you complete a full session. It sat quietly by your side, mimicking your focus with its own tiny book...",
+    body: "Today your FocuPet watched you complete a full session. It sat quietly by your side, mimicking your focus with its own tiny book.",
     unlocked: false,
   },
   {
@@ -166,6 +210,11 @@ const STORIES = [
 export default function StoryScreen() {
   const [activeStory, setActiveStory] = useState<any>(null);
   const [scaleAnim] = useState(new Animated.Value(0));
+
+  // Get User Pet
+  const { petType } = useOnboarding();
+  const fallback: PetType = petType ?? "Cat";
+  const petSource = PET_IMAGES[fallback];
 
   // Animate Modal Open
   useEffect(() => {
@@ -192,20 +241,26 @@ export default function StoryScreen() {
         <FloatingParticle delay={4000} color={COLORS.cardUnlocked} size={120} startX={width / 2} />
       </View>
 
-      {/* Main Content Area */}
       <View style={styles.content}>
 
         {/* Title Tag */}
         <View style={styles.titleTagWrapper}>
           <View style={styles.titleTag}>
-            <Text style={styles.titleText}>Stories</Text>
+            <Text style={styles.titleText}>Memories</Text>
           </View>
-          {/* Tape Effect */}
           <View style={styles.tape} />
         </View>
 
+        {/* Peeking Pet (Behind the board) */}
+        <PeekingPet source={petSource} />
+
         {/* The Navy Board */}
         <View style={styles.board}>
+
+          {/* Decorative Stickers */}
+          <Text style={[styles.sticker, { top: 10, left: 10, transform: [{rotate: '-15deg'}] }]}>⭐</Text>
+          <Text style={[styles.sticker, { bottom: 60, right: 15, transform: [{rotate: '10deg'}] }]}>🐾</Text>
+
           <ScrollView
             contentContainerStyle={styles.boardScroll}
             showsVerticalScrollIndicator={false}
@@ -225,6 +280,9 @@ export default function StoryScreen() {
             <Pressable style={styles.arrowButton}>
               <Text style={styles.arrowText}>←</Text>
             </Pressable>
+            <View style={styles.pageIndicator}>
+              <Text style={styles.pageText}>1 / 1</Text>
+            </View>
             <Pressable style={styles.arrowButton}>
               <Text style={styles.arrowText}>→</Text>
             </Pressable>
@@ -244,12 +302,11 @@ export default function StoryScreen() {
           >
             {/* Modal Tag */}
             <View style={styles.modalTag}>
-              <Text style={styles.modalTagText}>
+              <Text style={styles.modalTagText} numberOfLines={1}>
                 {activeStory?.title || "Story"}
               </Text>
             </View>
 
-            {/* Tape for Tag */}
             <View style={styles.modalTape} />
 
             {/* Close Button */}
@@ -260,16 +317,21 @@ export default function StoryScreen() {
               <Text style={styles.closeText}>✕</Text>
             </Pressable>
 
-            {/* White Paper Content */}
+            {/* Paper Content */}
             <View style={styles.modalContent}>
               <ScrollView>
                 <Text style={styles.modalStoryText}>
                   {activeStory?.body}
                 </Text>
               </ScrollView>
+
+              {/* Pet Stamp at bottom of letter */}
+              <View style={styles.stampContainer}>
+                 <Image source={petSource} style={styles.stampImage} />
+              </View>
             </View>
 
-            {/* Bottom Decorative Note */}
+            {/* Decorative Bottom */}
             <View style={styles.bottomNote} />
           </Animated.View>
         </View>
@@ -281,7 +343,7 @@ export default function StoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg, // White background
+    backgroundColor: COLORS.bg,
   },
   content: {
     flex: 1,
@@ -293,21 +355,21 @@ const styles = StyleSheet.create({
   titleTagWrapper: {
     position: "absolute",
     top: 50,
-    zIndex: 10,
+    zIndex: 20, // Above pet
     alignItems: 'center',
   },
   titleTag: {
-    backgroundColor: COLORS.tag, // Pale Lime
+    backgroundColor: COLORS.tag,
     paddingHorizontal: 40,
     paddingVertical: 12,
     borderRadius: 16,
-    transform: [{ rotate: "-4deg" }],
+    transform: [{ rotate: "-3deg" }],
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#FFF',
   },
   tape: {
@@ -315,8 +377,8 @@ const styles = StyleSheet.create({
     top: -10,
     width: 60,
     height: 24,
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    transform: [{ rotate: "4deg" }],
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    transform: [{ rotate: "2deg" }],
   },
   titleText: {
     fontSize: 22,
@@ -325,51 +387,70 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
+  // -------- PEEKING PET --------
+  peekingContainer: {
+    position: 'absolute',
+    top: 100, // Just above the board
+    zIndex: 5, // Behind title, front of board? No, behind board
+    elevation: 5,
+  },
+  peekingImage: {
+    width: 120,
+    height: 120,
+  },
+
   // -------- NAVY BOARD --------
   board: {
-    width: "85%",
-    height: "75%",
-    backgroundColor: COLORS.boardBg, // Dark Navy
+    width: "88%",
+    height: "72%",
+    backgroundColor: COLORS.boardBg,
     borderRadius: 36,
-    paddingTop: 60,
+    paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 16,
     alignItems: "center",
-    justifyContent: "space-between", // Space between list and arrows
+    justifyContent: "space-between",
     shadowColor: COLORS.boardBg,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
-    marginTop: 20,
+    marginTop: 60, // Space for pet
+    position: 'relative',
+    zIndex: 10, // In front of pet body
   },
   boardScroll: {
     alignItems: 'center',
     paddingBottom: 20,
-    gap: 20, // Space between cards
+    gap: 16,
     width: '100%',
+  },
+  sticker: {
+    position: 'absolute',
+    fontSize: 24,
+    opacity: 0.8,
   },
 
   // -------- STORY CARDS --------
   storyCard: {
-    width: 240,
-    height: 90,
+    width: '100%',
+    height: 85,
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    marginBottom: 8,
+    marginBottom: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
     elevation: 4,
   },
   storyCardUnlocked: {
-    backgroundColor: COLORS.cardUnlocked, // Sand
+    backgroundColor: COLORS.cardUnlocked,
   },
   storyCardLocked: {
-    backgroundColor: COLORS.cardLocked, // Periwinkle
+    backgroundColor: COLORS.cardLocked,
   },
   cardText: {
     fontSize: 16,
@@ -378,24 +459,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cardTextLocked: {
-    opacity: 0.7,
+    opacity: 0.6,
+    color: '#FFF',
   },
   lockIcon: {
-    marginTop: 4,
-    opacity: 0.5,
+    marginTop: 2,
+    opacity: 0.6,
   },
 
   // -------- ARROWS --------
   arrowsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "80%",
-    paddingBottom: 10,
+    alignItems: 'center',
+    width: "90%",
+    paddingBottom: 5,
   },
   arrowButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: COLORS.tag,
     justifyContent: "center",
     alignItems: "center",
@@ -406,16 +489,27 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   arrowText: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "900",
     color: COLORS.text,
     marginTop: -2,
+  },
+  pageIndicator: {
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  pageText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 12,
   },
 
   // -------- MODAL --------
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(61, 76, 121, 0.6)", // Navy tint
+    backgroundColor: "rgba(61, 76, 121, 0.6)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -436,23 +530,25 @@ const styles = StyleSheet.create({
 
   modalTag: {
     position: "absolute",
-    top: -15,
+    top: -18,
     paddingHorizontal: 24,
-    paddingVertical: 8,
+    paddingVertical: 10,
     backgroundColor: COLORS.tag,
-    borderRadius: 12,
-    transform: [{ rotate: "-4deg" }],
+    borderRadius: 16,
+    transform: [{ rotate: "-2deg" }],
     zIndex: 2,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#FFF',
+    maxWidth: '80%',
   },
   modalTagText: {
-    fontWeight: '800',
+    fontWeight: '900',
     color: COLORS.text,
+    fontSize: 16,
   },
   modalTape: {
     position: "absolute",
-    top: -25,
+    top: -28,
     width: 50,
     height: 20,
     backgroundColor: "rgba(255,255,255,0.6)",
@@ -463,11 +559,11 @@ const styles = StyleSheet.create({
   closeButton: {
     position: "absolute",
     top: 16,
-    left: 16,
+    right: 16, // Moved to right for better UX
     backgroundColor: COLORS.tag,
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
@@ -485,29 +581,44 @@ const styles = StyleSheet.create({
 
   modalContent: {
     width: "88%",
-    height: "75%", // Taller content area
-    backgroundColor: "#FFFFFF",
+    height: "78%",
+    backgroundColor: "#FFF9F0", // Slightly warmer paper
     borderRadius: 24,
-    marginTop: 30, // Push down below close button
+    marginTop: 30,
     padding: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
+    overflow: 'hidden', // Clip the stamp
   },
   modalStoryText: {
-    fontSize: 16,
+    fontSize: 17,
     color: COLORS.text,
-    lineHeight: 24,
+    lineHeight: 26,
     fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+  },
+  stampContainer: {
+    position: 'absolute',
+    bottom: -10,
+    right: -10,
+    opacity: 0.2,
+    transform: [{ rotate: '-10deg' }],
+  },
+  stampImage: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
+    tintColor: COLORS.text, // Make it look like an ink stamp
   },
 
   bottomNote: {
     width: "50%",
-    height: 40,
+    height: 30,
     backgroundColor: COLORS.cardUnlocked,
-    borderRadius: 12,
+    borderRadius: 10,
     position: "absolute",
     bottom: 20,
     transform: [{ rotate: "-3deg" }],
