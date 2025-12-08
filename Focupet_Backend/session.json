@@ -26,5 +26,15 @@
     "endTime": null,
     "duration": null,
     "reward": 0
+  },
+  {
+    "id": 1764610737681,
+    "userId": 1,
+    "task": "study",
+    "taskId": null,
+    "startTime": "2025-12-01T17:38:57.681Z",
+    "endTime": "2025-12-01T17:40:02.305Z",
+    "duration": 64,
+    "reward": 0
   }
 ]
