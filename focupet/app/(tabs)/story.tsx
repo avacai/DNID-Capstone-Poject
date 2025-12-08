@@ -11,6 +11,7 @@ import {
   StatusBar,
   ScrollView,
   Image,
+  Platform,
 } from "react-native";
 import { useOnboarding, PetType } from "@/hooks/useOnboarding";
 
@@ -261,7 +262,9 @@ export default function StoryScreen() {
           <Text style={[styles.sticker, { top: 10, left: 10, transform: [{rotate: '-15deg'}] }]}>⭐</Text>
           <Text style={[styles.sticker, { bottom: 60, right: 15, transform: [{rotate: '10deg'}] }]}>🐾</Text>
 
+          {/* CHANGED: Added style to ScrollView directly to take up flexible space */}
           <ScrollView
+            style={styles.scrollContainer}
             contentContainerStyle={styles.boardScroll}
             showsVerticalScrollIndicator={false}
           >
@@ -419,12 +422,24 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 10, // In front of pet body
   },
+
+  // CHANGED: Helper style to let ScrollView expand
+  scrollContainer: {
+    width: '100%',
+    flex: 1, // This allows it to fill space between header and footer
+    marginTop: 10,
+    marginBottom: 10,
+  },
+
+  // CHANGED: Center content vertically
   boardScroll: {
     alignItems: 'center',
-    paddingBottom: 20,
-    gap: 16,
+    justifyContent: 'center', // Center vertically
+    flexGrow: 1, // Grow to fill the view so centering works
+    gap: 20, // Increased gap slightly
     width: '100%',
   },
+
   sticker: {
     position: 'absolute',
     fontSize: 24,

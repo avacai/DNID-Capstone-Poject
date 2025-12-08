@@ -12,25 +12,22 @@ import {
   Easing,
   StatusBar,
   ActivityIndicator,
-  Platform, // Import Platform to check for Android/iOS
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import CoinBar from "@/components/CoinBar";
 import { useOnboarding, PetType } from "@/hooks/useOnboarding";
+import { api } from "@/lib/api";
 
 const { width, height } = Dimensions.get("window");
 
 // --- 0. API CONFIGURATION ---
-// Android Emulator uses 10.0.2.2 to access localhost. iOS uses localhost.
-// If you are using a PHYSICAL DEVICE, replace this with your computer's LAN IP (e.g., "http://192.168.1.5:5050")
 const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5050' : 'http://localhost:5050';
 
 // --- 1. Mappings ---
-// Map backend IDs to local assets
 const ITEM_MAP: Record<string, any> = {
-  // Ensure "1.jpg" exists in assets/items/ OR rename file to star_wand.jpg
+  // Ensure you have these assets
   "star_wand": { type: 'image', source: require("@/assets/items/star_wand.png") },
-
   "milk_bowl": { type: 'icon', source: "🥛" },
   "bow_pink": { type: 'icon', source: "🎀" },
   "collar_blue": { type: 'icon', source: "🔵" },
@@ -56,6 +53,7 @@ const COLORS = {
   accent2: '#F2E1AC',
   cardBg: '#FFFDF5',
   modalBg: '#3D4C79',
+  alertBg: '#FF8A80', // Soft Red for Alerts
 };
 
 // --- 3. Assets ---
@@ -119,30 +117,29 @@ const CARD_WIDTH = (width - HORIZONTAL_PADDING * 2 - CARD_GAP) / 2;
 
 export default function StoreScreen() {
   const router = useRouter();
-  const { petType } = useOnboarding();
+  // Get Global Currency State
+  const { petType, currency, setCurrency } = useOnboarding();
   const fallback: PetType = petType ?? "Cat";
   const petSource = PET_IMAGES[fallback];
 
   const [storeItems, setStoreItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Modals
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false); // NEW: Alert State
+
   const [pendingItem, setPendingItem] = useState<any | null>(null);
 
   // FETCH STORE ITEMS
   useEffect(() => {
     const fetchStore = async () => {
       try {
-        const userId = 1; // Replace with dynamic user ID later
-
-        console.log("Fetching store from:", `${API_URL}/api/store/list?userId=${userId}`);
-
+        const userId = 1; // Replace with dynamic logic if needed
         const res = await fetch(`${API_URL}/api/store/list?userId=${userId}`);
         const data = await res.json();
-
         if (data.ok) {
           setStoreItems(data.store);
-        } else {
-          console.warn("Store Error:", data.message);
         }
       } catch (e) {
         console.error("Failed to load store:", e);
@@ -150,7 +147,6 @@ export default function StoreScreen() {
         setLoading(false);
       }
     };
-
     fetchStore();
   }, []);
 
@@ -165,9 +161,29 @@ export default function StoreScreen() {
   };
 
   const handleConfirmBuy = async () => {
+    if (!pendingItem) return;
+
+    // 1. Check if user has enough money (Frontend Check)
+    if (currency < pendingItem.price) {
+      setConfirmVisible(false); // Close buy modal
+      setAlertVisible(true);    // Show alert modal
+      return;
+    }
+
     try {
-      console.log("Buying item", pendingItem?.id);
-      // await api.purchase(1, pendingItem.id);
+      // 2. Call API to Purchase
+      const res = await api.purchase(1, pendingItem.id);
+
+      if (res.ok) {
+        // 3. Update Global Currency
+        setCurrency(res.currency);
+        console.log("Purchase success!");
+      } else {
+        // If backend rejects it (double check)
+        setConfirmVisible(false);
+        setAlertVisible(true);
+        return;
+      }
     } catch(e) {
       console.log(e);
     }
@@ -177,9 +193,7 @@ export default function StoreScreen() {
 
   const renderItemVisual = (itemId: string, style: any) => {
     const mapped = ITEM_MAP[itemId];
-
     if (!mapped) return <Text style={{fontSize: 40}}>📦</Text>;
-
     if (mapped.type === 'image') {
       return <Image source={mapped.source} style={style} resizeMode="contain" />;
     } else {
@@ -201,7 +215,7 @@ export default function StoreScreen() {
         </Pressable>
 
         <CoinBar
-          coins={120}
+          coins={currency} // Use global currency
           onPressPlus={() => console.log("Open coin purchase")}
         />
       </View>
@@ -289,6 +303,38 @@ export default function StoreScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* ALERT MODAL (Not Enough Coins) */}
+      <Modal
+        visible={alertVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAlertVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          {/* REMOVED COMMENT TO FIX TEXT ERROR */}
+          <View style={[styles.modalCard, { backgroundColor: COLORS.accent2 }]}>
+
+            <Text style={[styles.modalTitle, { color: COLORS.text }]}>Oh no!</Text>
+
+            <View style={styles.alertIconContainer}>
+               <Text style={{fontSize: 60}}>💸</Text>
+            </View>
+
+            <Text style={[styles.alertText, { marginBottom: 4 }]}>Not enough coins.</Text>
+            <Text style={[styles.alertText, { fontSize: 14, opacity: 0.7 }]}>Complete more tasks to earn!</Text>
+
+            <Pressable
+              style={[styles.modalBtn, styles.modalBuy, { marginTop: 24, width: '100%' }]}
+              onPress={() => setAlertVisible(false)}
+            >
+              <Text style={styles.modalBtnTextLight}>Okay</Text>
+            </Pressable>
+
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -375,6 +421,10 @@ const styles = StyleSheet.create({
   itemImage: {
     width: 80,
     height: 80,
+    marginBottom: 10,
+  },
+  itemIcon: {
+    fontSize: 50,
     marginBottom: 10,
   },
   priceTag: {
@@ -485,5 +535,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800",
     color: COLORS.text,
+  },
+  // Alert specific
+  alertIconContainer: {
+    marginBottom: 16,
+  },
+  alertText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.text,
+    textAlign: 'center',
   },
 });
