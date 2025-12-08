@@ -1,4 +1,3 @@
-// app/session/index.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -7,21 +6,99 @@ import {
   StyleSheet,
   Modal,
   Image,
+  Animated,
+  Dimensions,
+  Easing,
+  StatusBar,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { SessionTask } from "@/components/TaskModal";
+import { useOnboarding, PetType } from "@/hooks/useOnboarding";
 
+const { width, height } = Dimensions.get("window");
+
+// --- 1. Shared Color Palette ---
+const COLORS = {
+  bg: '#FFFFFF',
+  text: '#3D4C79',       // Dark Navy
+  primary: '#9EB7E5',    // Periwinkle
+  accent1: '#E8F0B8',    // Pale Lime
+  accent2: '#F2E1AC',    // Sand/Cream
+  stopBtn: '#1F2A44',    // Darker Navy for Stop
+};
+
+// --- 2. Assets ---
+const PET_IMAGES: Record<PetType, any> = {
+  Cat: require("@/assets/pets/cat_1.png"),
+  Dog: require("@/assets/pets/dog_1.png"),
+  Duck: require("@/assets/pets/duck_1.png"),
+  Seal: require("@/assets/pets/seal_1.png"),
+};
+
+// --- 3. Helper Functions ---
 function formatTime(sec: number) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+// --- 4. Animation Components ---
+const FloatingParticle = ({ delay, color, size, startX }: { delay: number; color: string; size: number; startX: number }) => {
+  const animValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animValue, {
+          toValue: 1,
+          duration: 10000 + Math.random() * 5000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(animValue, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        })
+      ])
+    ).start();
+  }, [animValue]);
+
+  const translateY = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [height, -100],
+  });
+
+  const translateX = animValue.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [startX, startX + 40, startX - 40],
+  });
+
+  return (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+        opacity: 0.3,
+        transform: [{ translateY }, { translateX }],
+      }}
+    />
+  );
+};
+
 type Overlay = "none" | "pause" | "giveUp" | "success";
 type RewardType = "item" | "story";
 
 export default function SessionScreen() {
   const router = useRouter();
+  // Get user's pet type
+  const { petType } = useOnboarding();
+  const fallbackType: PetType = petType ?? "Cat";
+  const petSource = PET_IMAGES[fallbackType];
+
   const { minutes, tasks } = useLocalSearchParams<{
     minutes?: string;
     tasks?: string;
@@ -42,6 +119,21 @@ export default function SessionScreen() {
   const [rewardType, setRewardType] = useState<RewardType>("item");
 
   const intervalRef = useRef<NodeJS.Timer | null>(null);
+
+  // Pet "Breathing" Animation
+  const breathAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (overlay === 'none' && !finished) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(breathAnim, { toValue: 1.05, duration: 1500, useNativeDriver: true, easing: Easing.inOut(Easing.quad) }),
+          Animated.timing(breathAnim, { toValue: 1, duration: 1500, useNativeDriver: true, easing: Easing.inOut(Easing.quad) }),
+        ])
+      ).start();
+    } else {
+      breathAnim.setValue(1); // Reset when paused/finished
+    }
+  }, [overlay, finished]);
 
   const startInterval = () => {
     if (intervalRef.current || finished) return;
@@ -108,10 +200,7 @@ export default function SessionScreen() {
   };
 
   const handleSuccessNext = () => {
-    // steps:
-    // 0: summary
-    // 1: coins
-    // 2: random reward (item OR story) → then home
+    // steps: 0: summary -> 1: coins -> 2: random reward -> home
     if (successStep < 2) {
       setSuccessStep((s) => s + 1);
     } else {
@@ -134,35 +223,56 @@ export default function SessionScreen() {
 
   return (
     <View style={styles.container}>
-      {/* big time pill */}
+      <StatusBar barStyle="dark-content" />
+
+      {/* Background Particles */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <FloatingParticle delay={0} color={COLORS.accent1} size={140} startX={40} />
+        <FloatingParticle delay={2000} color={COLORS.accent2} size={100} startX={width - 50} />
+        <FloatingParticle delay={4000} color={COLORS.primary} size={120} startX={width / 2} />
+      </View>
+
+      {/* Big Time Pill */}
       <View style={styles.timePill}>
         <Text style={styles.timeText}>{formatTime(secondsLeft)}</Text>
       </View>
 
-      {/* simple task bars */}
+      {/* Task Bars */}
       <View style={styles.tasksWrapper}>
         {parsedTasks.slice(0, 2).map((t) => (
-          <View key={t.id} style={styles.taskBar} />
+          <View key={t.id} style={styles.taskBar}>
+            <Text style={styles.taskText} numberOfLines={1}>{t.title}</Text>
+          </View>
         ))}
       </View>
 
-      {/* pet circle placeholder */}
-      <View style={styles.petCircle} />
+      {/* Pet Placeholder (Replaced Grey Circle) */}
+      <Animated.View style={[styles.petContainer, { transform: [{ scale: breathAnim }] }]}>
+        <Image source={petSource} style={styles.petImage} resizeMode="contain" />
+      </Animated.View>
 
       {/* Stop / Cancel bar */}
       <View style={styles.bottomBar}>
         <Pressable
           onPress={pauseTimer}
-          style={[styles.bottomBtn, styles.stopBtn]}
+          style={({pressed}) => [
+            styles.bottomBtn,
+            styles.stopBtn,
+            pressed && { opacity: 0.9 }
+          ]}
         >
           <Text style={[styles.bottomText, { color: "#FFFFFF" }]}>Stop</Text>
         </Pressable>
 
         <Pressable
           onPress={cancelSession}
-          style={[styles.bottomBtn, styles.cancelBtn]}
+          style={({pressed}) => [
+            styles.bottomBtn,
+            styles.cancelBtn,
+            pressed && { opacity: 0.9 }
+          ]}
         >
-          <Text style={[styles.bottomText, { color: "#111827" }]}>Cancel</Text>
+          <Text style={[styles.bottomText, { color: COLORS.text }]}>Cancel</Text>
         </Pressable>
       </View>
 
@@ -174,28 +284,24 @@ export default function SessionScreen() {
         onRequestClose={resumeTimer}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.pauseCard}>
-            <Text style={styles.pauseTitle}>You are almost there!</Text>
-            <Text style={styles.pauseText}>Don&apos;t give up!</Text>
+          <View style={styles.popupCard}>
+            <Text style={styles.popupTitle}>You are almost there!</Text>
+            <Text style={styles.popupText}>Don&apos;t give up!</Text>
 
-            <Image
-              source={require("@/assets/pets/cat1.png")}
-              style={styles.pausePet}
-              resizeMode="contain"
-            />
+            <Image source={petSource} style={styles.popupPet} resizeMode="contain" />
 
-            <View style={styles.pauseButtonsRow}>
+            <View style={styles.popupButtonsRow}>
               <Pressable
                 onPress={resumeTimer}
-                style={[styles.pauseBtn, styles.pauseBackBtn]}
+                style={[styles.popupBtn, styles.popupBackBtn]}
               >
-                <Text style={styles.pauseBackText}>Back</Text>
+                <Text style={styles.popupBackText}>Back</Text>
               </Pressable>
               <Pressable
                 onPress={handleGiveUp}
-                style={[styles.pauseBtn, styles.pauseQuitBtn]}
+                style={[styles.popupBtn, styles.popupQuitBtn]}
               >
-                <Text style={styles.pauseQuitText}>Quit</Text>
+                <Text style={styles.popupQuitText}>Quit</Text>
               </Pressable>
             </View>
           </View>
@@ -210,24 +316,20 @@ export default function SessionScreen() {
         onRequestClose={handleGiveUpOk}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.pauseCard}>
-            <Text style={styles.pauseTitle}>You can do it next time!</Text>
-            <Text style={styles.pauseText}>
+          <View style={styles.popupCard}>
+            <Text style={styles.popupTitle}>You can do it next time!</Text>
+            <Text style={styles.popupText}>
               Your FocuPet will be cheering for you.
             </Text>
 
-            <Image
-              source={require("@/assets/pets/cat1.png")}
-              style={styles.pausePet}
-              resizeMode="contain"
-            />
+            <Image source={petSource} style={styles.popupPet} resizeMode="contain" />
 
             <View style={styles.singleBtnRow}>
               <Pressable
                 onPress={handleGiveUpOk}
-                style={[styles.pauseBtn, styles.pauseBackBtn]}
+                style={[styles.popupBtn, styles.popupBackBtn]}
               >
-                <Text style={styles.pauseBackText}>Ok</Text>
+                <Text style={styles.popupBackText}>Ok</Text>
               </Pressable>
             </View>
           </View>
@@ -243,11 +345,11 @@ export default function SessionScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.successCard}>
-            <Image
-              source={require("@/assets/pets/cat1.png")}
-              style={styles.successPet}
-              resizeMode="contain"
-            />
+
+            {/* Tape Decoration */}
+            <View style={styles.tape} />
+
+            <Image source={petSource} style={styles.successPet} resizeMode="contain" />
 
             {successStep === 0 && (
               <>
@@ -257,7 +359,7 @@ export default function SessionScreen() {
                 </Text>
                 {firstTaskTitle ? (
                   <Text style={styles.successBodySmall}>
-                    Great job finishing:{" "}
+                    Great job finishing:{"\n"}
                     <Text style={{ fontWeight: "800" }}>{firstTaskTitle}</Text>
                   </Text>
                 ) : null}
@@ -268,7 +370,7 @@ export default function SessionScreen() {
               <>
                 <Text style={styles.successTitle}>Good Job!</Text>
                 <Text style={styles.successBody}>You&apos;ve earned:</Text>
-                <Text style={styles.successReward}>+ 20 coins</Text>
+                <Text style={styles.successReward}>+ 20 coins 🐾</Text>
               </>
             )}
 
@@ -294,7 +396,7 @@ export default function SessionScreen() {
                 <Text style={styles.successBodySmall}>
                   {randomStoryName}
                 </Text>
-                <Text style={[styles.successBodySmall, { marginTop: 8 }]}>
+                <Text style={[styles.successBodySmall, { marginTop: 8, opacity: 0.7 }]}>
                   You can view it in the Story tab later.
                 </Text>
               </>
@@ -302,10 +404,13 @@ export default function SessionScreen() {
 
             <Pressable
               onPress={handleSuccessNext}
-              style={styles.successNextBtn}
+              style={({pressed}) => [
+                styles.successNextBtn,
+                pressed && { transform: [{scale: 0.98}] }
+              ]}
             >
               <Text style={styles.successNextText}>
-                {successStep === 2 ? "Back Home" : "Next"}
+                {successStep === 2 ? "Back Home" : "Next →"}
               </Text>
             </Pressable>
           </View>
@@ -318,180 +423,252 @@ export default function SessionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFDF5",
+    backgroundColor: COLORS.bg,
     alignItems: "center",
     paddingTop: 80,
   },
+  // Time Pill
   timePill: {
-    backgroundColor: "#B9C5F7",
-    borderRadius: 16,
-    paddingHorizontal: 32,
-    paddingVertical: 10,
-    marginBottom: 24,
+    backgroundColor: COLORS.primary,
+    borderRadius: 24,
+    paddingHorizontal: 40,
+    paddingVertical: 12,
+    marginBottom: 30,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   timeText: {
-    fontSize: 36,
+    fontSize: 40,
     fontWeight: "900",
     letterSpacing: 1,
+    color: '#FFFFFF',
   },
+  // Task Bars
   tasksWrapper: {
     width: "80%",
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 40,
   },
   taskBar: {
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: "#B9C5F7",
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.accent2, // Sand
+    justifyContent: 'center',
+    paddingHorizontal: 16,
   },
-  petCircle: {
+  taskText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  // Pet Container
+  petContainer: {
     width: 240,
     height: 240,
     borderRadius: 120,
-    backgroundColor: "#DFE1E4",
+    // backgroundColor: '#FFF', // Optional: Circle behind pet
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 60,
   },
+  petImage: {
+    width: 200,
+    height: 200,
+  },
+  // Bottom Bar
   bottomBar: {
     flexDirection: "row",
-    width: "90%",
-    borderRadius: 24,
+    width: "85%",
+    height: 56,
+    borderRadius: 28,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
   },
   bottomBtn: {
     flex: 1,
-    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   stopBtn: {
-    backgroundColor: "#1F2A44",
+    backgroundColor: COLORS.stopBtn,
   },
   cancelBtn: {
-    backgroundColor: "#A0B1F3",
+    backgroundColor: COLORS.primary,
   },
   bottomText: {
     fontSize: 18,
     fontWeight: "800",
   },
 
+  // --- MODALS ---
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: "rgba(61, 76, 121, 0.5)", // Navy Tint
     alignItems: "center",
     justifyContent: "center",
   },
 
-  pauseCard: {
-    width: "80%",
-    borderRadius: 24,
-    backgroundColor: "#FDF2C7",
+  // Popup Card (Pause/GiveUp)
+  popupCard: {
+    width: "85%",
+    borderRadius: 32,
+    backgroundColor: COLORS.accent2, // Sand
     alignItems: "center",
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  pauseTitle: {
-    fontSize: 18,
+  popupTitle: {
+    fontSize: 20,
     fontWeight: "800",
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: 8,
+    color: COLORS.text,
   },
-  pauseText: {
-    fontSize: 14,
+  popupText: {
+    fontSize: 15,
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: 20,
+    color: COLORS.text,
+    fontWeight: '600',
   },
-  pausePet: {
-    width: 140,
-    height: 140,
-    marginBottom: 16,
+  popupPet: {
+    width: 120,
+    height: 120,
+    marginBottom: 20,
   },
-  pauseButtonsRow: {
+  popupButtonsRow: {
     flexDirection: "row",
     width: "100%",
     justifyContent: "space-between",
-    marginTop: 6,
+    marginTop: 10,
+    gap: 12,
   },
   singleBtnRow: {
-    width: "60%",
-    marginTop: 8,
+    width: "100%",
+    marginTop: 10,
   },
-  pauseBtn: {
+  popupBtn: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingVertical: 14,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
   },
-  pauseBackBtn: {
-    backgroundColor: "#9CAAF8",
-    marginRight: 8,
+  popupBackBtn: {
+    backgroundColor: COLORS.primary, // Periwinkle
   },
-  pauseQuitBtn: {
-    backgroundColor: "#1F2A44",
-    marginLeft: 8,
+  popupQuitBtn: {
+    backgroundColor: COLORS.stopBtn, // Navy
   },
-  pauseBackText: {
-    color: "#111827",
+  popupBackText: {
+    color: '#FFFFFF',
     fontWeight: "800",
+    fontSize: 16,
   },
-  pauseQuitText: {
+  popupQuitText: {
     color: "#FFFFFF",
     fontWeight: "800",
+    fontSize: 16,
   },
 
+  // Success Card
   successCard: {
-    width: "80%",
-    borderRadius: 24,
-    backgroundColor: "#FFF9DC",
+    width: "85%",
+    borderRadius: 32,
+    backgroundColor: COLORS.boardBg, // Navy Board
     alignItems: "center",
-    paddingVertical: 24,
-    paddingHorizontal: 18,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+    position: 'relative',
+    shadowColor: COLORS.boardBg,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  tape: {
+    position: 'absolute',
+    top: -15,
+    width: 80,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    transform: [{ rotate: '-2deg' }],
   },
   successPet: {
-    width: 180,
+    width: 160,
     height: 160,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   successTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "900",
     textAlign: "center",
-    marginBottom: 6,
+    marginBottom: 8,
+    color: '#FFFFFF',
   },
   successBody: {
-    fontSize: 15,
+    fontSize: 16,
     textAlign: "center",
     marginBottom: 4,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   successBodySmall: {
-    fontSize: 13,
+    fontSize: 14,
     textAlign: "center",
-    marginTop: 4,
-    color: "#4B5563",
+    marginTop: 8,
+    color: COLORS.accent1, // Lime
+    fontWeight: '600',
   },
   successReward: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "900",
-    marginTop: 6,
-    marginBottom: 6,
+    marginTop: 10,
+    marginBottom: 10,
+    color: COLORS.accent2, // Sand
   },
   itemBox: {
     width: 80,
-    height: 100,
-    borderRadius: 16,
-    backgroundColor: "#FDE68A",
-    marginTop: 10,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: COLORS.accent2,
+    marginTop: 16,
+    marginBottom: 8,
+    borderWidth: 4,
+    borderColor: '#FFF',
   },
   successNextBtn: {
-    marginTop: 18,
-    backgroundColor: "#9CAAF8",
-    borderRadius: 20,
+    marginTop: 30,
+    backgroundColor: COLORS.accent1, // Lime
+    borderRadius: 24,
     paddingHorizontal: 40,
-    paddingVertical: 10,
+    paddingVertical: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
   },
   successNextText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "800",
-    color: "#111827",
+    color: COLORS.text,
   },
 });
